@@ -881,13 +881,11 @@
   var PASSWORD_HASH = "350db86b707249fcbf5621133c5e146d398ead577c3e682c2794de1911b36846";
 
   function showLockScreen() {
-    // Render app first (hidden) so it's instant after unlock
-    if (!document.getElementById('pg-app').children.length) {
-      render();
-    }
-    // Hide the app content behind the lock
+    // Clean approach: hide pg-root completely, show lock on top
+    // Do NOT call render() until after unlock
     var root = document.querySelector('.pg-root');
-    if (root) root.style.display = 'none';
+    if (root) root.style.visibility = 'hidden';
+    if (root) root.style.pointerEvents = 'none';
 
     var lock = document.createElement('div');
     lock.id = 'pg-lock';
@@ -938,9 +936,10 @@
           try { localStorage.setItem('puglia-auth', hash); } catch(e) {}
           _authenticated = true;
           lock.remove();
+          // Now render the app for the first time
+          render();
           var root = document.querySelector('.pg-root');
-          if (root) root.style.display = '';
-          if (!document.getElementById('pg-app').children.length) render();
+          if (root) { root.style.visibility = ''; root.style.pointerEvents = ''; }
         } else {
           errEl.textContent = 'Incorrect password';
           input.value = '';
@@ -999,11 +998,11 @@
     }
 
     if (savedHash && savedHash === PASSWORD_HASH) {
-      // Already authenticated on this device with correct SHA256 hash
+      // Already authenticated — render immediately
       _authenticated = true;
       render();
     } else {
-      // Show lock screen — clears any stale auth automatically
+      // Not authenticated — show lock, render only happens after correct password
       showLockScreen();
     }
 
