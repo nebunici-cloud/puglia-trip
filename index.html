@@ -866,7 +866,7 @@
         }
       });
 
-      // Load app password from Firebase
+      // Load app password from Firebase — resolve promise once we have it
       _fbDatabase.ref('/puglia-trip/config/password').once('value', function(snap) {
         var p = snap.val();
         if (p) _appPassword = p;
@@ -883,7 +883,11 @@
   var _appPassword = null; // loaded from Firebase
 
   function showLockScreen() {
-    // Hide the app content
+    // Render app first (hidden) so it's instant after unlock
+    if (!document.getElementById('pg-app').children.length) {
+      render();
+    }
+    // Hide the app content behind the lock
     var root = document.querySelector('.pg-root');
     if (root) root.style.display = 'none';
 
@@ -989,28 +993,34 @@
     // Load Anthropic key (fast path — Firebase will update this after connecting)
     try { var ak = localStorage.getItem('puglia-anthropic-key'); if (ak) _anthropicKey = ak; } catch(e) {}
 
-    // Check authentication — skip lock if already authenticated on this device
+    // Connect Firebase first, wait for password to load before deciding auth
+    await initFirebase();
+
+    // Wait up to 3 seconds for Firebase to load the password
+    if (!_appPassword) {
+      await new Promise(function(resolve) {
+        var attempts = 0;
+        var check = setInterval(function() {
+          attempts++;
+          if (_appPassword || attempts >= 15) { clearInterval(check); resolve(); }
+        }, 200);
+      });
+    }
+
+    // Check authentication
     var savedAuth = null;
     try { savedAuth = localStorage.getItem('puglia-auth'); } catch(e) {}
 
-    // Connect Firebase first to get password, then check auth
-    await initFirebase();
-
-    // If device was previously authenticated with correct password, skip lock screen
-    if (savedAuth && _appPassword && savedAuth === btoa(_appPassword)) {
-      _authenticated = true;
-      render();
-    } else if (!_appPassword) {
-      // Firebase not yet connected or no password set — render and skip lock
-      _authenticated = true;
-      render();
-    } else {
-      // Show lock screen
-      render(); // render in background (hidden)
+    if (_appPassword && savedAuth !== btoa(_appPassword)) {
+      // Show lock screen — password exists and this device isn't authenticated
       showLockScreen();
+    } else {
+      // No password set, or device already authenticated
+      _authenticated = true;
+      render();
     }
 
-    // Schedule any pending notifications
+    // Schedule notifications after render
     if ('Notification' in window && Notification.permission === 'granted') {
       scheduleAllNotifications();
     }
