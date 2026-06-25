@@ -1113,9 +1113,19 @@
   var WORKER_URL = "https://misty-star-076e.matchpredictor.workers.dev";
 
   async function callAI(systemPrompt, userPrompt, useWebSearch) {
+    // If key not loaded yet, wait up to 3s for Firebase to provide it
+    if (!_anthropicKey) {
+      await new Promise(function(resolve) {
+        var attempts = 0;
+        var check = setInterval(function() {
+          attempts++;
+          if (_anthropicKey || attempts >= 15) { clearInterval(check); resolve(); }
+        }, 200);
+      });
+    }
     if (!_anthropicKey) {
       showKeySetup();
-      throw new Error('API key not configured');
+      throw new Error('API key not configured — enter it in the setup screen');
     }
     var tools = useWebSearch ? [{ type: 'web_search_20250305', name: 'web_search' }] : undefined;
     var payload = {
