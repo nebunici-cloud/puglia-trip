@@ -906,7 +906,7 @@
         '<input id="pg-lock-input" type="password" placeholder="Enter password" ',
           'style="width:100%;border:1.5px solid #E8E9ED;border-radius:12px;padding:14px 16px;',
           'font-size:16px;font-family:inherit;box-sizing:border-box;margin-bottom:12px;',
-          'text-align:center;letter-spacing:0.1em;outline:none;" autocomplete="current-password">',
+          'text-align:center;letter-spacing:0.1em;outline:none;" autocomplete="off">',
         '<button id="pg-lock-btn" ',
           'style="width:100%;padding:14px;background:#15161A;color:white;border:none;',
           'border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">',
@@ -990,12 +990,20 @@
     var savedHash = null;
     try { savedHash = localStorage.getItem('puglia-auth'); } catch(e) {}
 
+    // Validate: savedHash must be exactly the SHA256 hash format (64 hex chars)
+    // Clears any old btoa-format auth from previous Firebase implementation
+    var isValidHash = savedHash && /^[0-9a-f]{64}$/.test(savedHash);
+    if (!isValidHash) {
+      try { localStorage.removeItem('puglia-auth'); } catch(e) {}
+      savedHash = null;
+    }
+
     if (savedHash && savedHash === PASSWORD_HASH) {
-      // Already authenticated on this device
+      // Already authenticated on this device with correct SHA256 hash
       _authenticated = true;
       render();
     } else {
-      // Show lock screen before rendering
+      // Show lock screen — clears any stale auth automatically
       showLockScreen();
     }
 
@@ -1253,6 +1261,7 @@
     });
   }
 
+  // Expose addAltToPlan on window so onclick in innerHTML can reach it (IIFE scope)
   // Add an AI-suggested alternative to the day's options list
   function addAltToPlan(encodedAlt, rowId, dayNum) {
     try {
@@ -1285,6 +1294,7 @@
       showToast('Could not add to plan');
     }
   }
+  window.addAltToPlan = addAltToPlan; // expose for onclick in innerHTML
 
   // ─── Feature 2: Day briefing with live weather ───────────────────────────
   function showDayBriefing(day) {
