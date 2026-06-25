@@ -1,0 +1,2946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Puglia Trip">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#15161A">
+  <title>Puglia Trip Planner</title>
+  <link rel="manifest" id="pg-manifest">
+
+  <!-- Apple touch icons (inline SVG favicon via data URL) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2315161A'/><text y='68' x='50' text-anchor='middle' font-size='56' font-family='system-ui'>🌊</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2315161A'/><text y='68' x='50' text-anchor='middle' font-size='56' font-family='system-ui'>🌊</text></svg>">
+
+  <style>
+    /* PWA safe area insets */
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      padding-bottom: var(--safe-bottom);
+      background: #F5F6F8;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    /* Extend the sticky nav background into the status bar */
+    #pg-nav::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--safe-top);
+      background: var(--surface, #FFFFFF);
+      z-index: 6;
+      pointer-events: none;
+    }
+    .pg-root {
+      width: 100%;
+      min-height: 100vh;
+    }
+    @media (min-width: 900px) {
+      body { padding: 24px; }
+      .pg-root { border-radius: 20px; min-height: auto; }
+    }
+
+    /* Offline banner */
+    #pg-offline-banner {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #E0622A;
+      color: white;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      padding: 8px 16px;
+      z-index: 9999;
+    }
+    body.pg-offline #pg-offline-banner { display: block; }
+    body.pg-offline .pg-root { margin-top: 36px; }
+  </style>
+</head>
+<body>
+  <div id="pg-offline-banner">📡 You're offline — all your picks and content are still available</div>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  .pg-root {
+    --ink: #15161A;
+    --ink-soft: #6B6F7A;
+    --ink-faint: #9CA0AA;
+    --surface: #FFFFFF;
+    --surface-sunken: #F5F6F8;
+    --surface-tint: #F0F4FF;
+    --line: #E8E9ED;
+    --accent: #5B5FEF;
+    --accent-dark: #4347C4;
+    --accent-tint: #ECEDFF;
+    --success: #1F9A6E;
+    --success-tint: #E6F7EF;
+    --warn: #E0622A;
+    --warn-tint: #FDECE3;
+    --danger: #D33A3A;
+    --danger-tint: #FCEAEA;
+    --logistics-bg: #1A1D2E;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--ink);
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 0;
+    max-width: 880px;
+    margin: 0 auto;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .pg-root * { box-sizing: border-box; }
+  .pg-tab-btn { cursor: pointer; transition: all 0.15s ease; }
+  .pg-tab-btn:hover { background: var(--surface-sunken); }
+  .pg-pager-btn { cursor: pointer; transition: all 0.15s ease; }
+  .pg-pager-btn:hover:not(:disabled) { background: var(--ink); color: white !important; border-color: var(--ink) !important; }
+  .pg-check {
+    width: 20px; height: 20px; flex-shrink: 0; cursor: pointer; margin-top: 1px;
+    border: 2px solid var(--ink-faint); border-radius: 7px;
+    appearance: none; -webkit-appearance: none; background: var(--surface);
+    position: relative; transition: all 0.15s ease;
+  }
+  .pg-check:hover { border-color: var(--accent); }
+  .pg-check:checked { background: var(--accent); border-color: var(--accent); }
+  .pg-check:checked::after {
+    content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px;
+    border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
+  }
+  .pg-option-row { transition: background 0.15s ease; border-radius: 12px; }
+  .pg-option-row.pg-picked { background: var(--accent-tint); }
+  .pg-maps-link { transition: all 0.15s ease; }
+  .pg-maps-link:hover { background: var(--accent) !important; color: white !important; }
+  .pg-maps-link:hover .pg-maps-arrow { color: white !important; }
+  .pg-action-btn { transition: all 0.15s ease; white-space: nowrap; }
+  .pg-action-btn:hover { background: var(--ink) !important; color: white !important; }
+  .pg-btn-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .pg-btn-row::-webkit-scrollbar { display: none; }
+
+  /* AI feature styles */
+  .pg-ai-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px; font-weight: 700; color: var(--accent-dark);
+    background: var(--accent-tint); border-radius: 8px;
+    padding: 5px 9px; text-decoration: none; white-space: nowrap;
+    border: none; cursor: pointer; transition: all 0.15s ease; flex-shrink: 0;
+  }
+  .pg-ai-btn:hover { background: var(--accent); color: white; }
+  .pg-ai-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  /* Slide-up AI panel */
+  .pg-ai-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 200; display: flex; align-items: flex-end;
+    animation: pgFadeIn 0.2s ease;
+  }
+  .pg-ai-panel {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    width: 100%; max-height: 80vh; overflow-y: auto;
+    padding: 0 0 calc(20px + var(--safe-bottom, 0px));
+    animation: pgSlideUp 0.25s ease;
+    scrollbar-width: thin;
+  }
+  .pg-ai-panel-header {
+    position: sticky; top: 0; background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 20px 14px; z-index: 1;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .pg-ai-panel-body { padding: 18px 20px; }
+  .pg-ai-panel-body p { margin: 0 0 12px; line-height: 1.7; font-size: 14.5px; }
+  .pg-ai-panel-body h3 { margin: 16px 0 6px; font-size: 15px; font-weight: 700; }
+  .pg-ai-panel-body ul { margin: 0 0 12px; padding-left: 18px; }
+  .pg-ai-panel-body li { margin-bottom: 6px; line-height: 1.6; font-size: 14.5px; }
+  .pg-ai-panel-body strong { font-weight: 700; }
+
+  /* Loading dots */
+  .pg-ai-loading { display: flex; align-items: center; gap: 5px; padding: 20px 0; }
+  .pg-ai-loading span {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+    animation: pgDot 1.2s infinite ease-in-out;
+  }
+  .pg-ai-loading span:nth-child(2) { animation-delay: 0.2s; }
+  .pg-ai-loading span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Day briefing card */
+  .pg-briefing-card {
+    background: linear-gradient(135deg, var(--accent-tint) 0%, #EEF2FF 100%);
+    border: 1px solid #C7CBF5; border-radius: 16px;
+    padding: 16px 18px; margin-bottom: 16px;
+  }
+
+  /* Alternatives panel option */
+  .pg-alt-item {
+    padding: 14px 0; border-bottom: 1px solid var(--line);
+  }
+  .pg-alt-item:last-child { border-bottom: none; }
+
+  /* Replan panel */
+  .pg-replan-day { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .pg-replan-day:last-child { border-bottom: none; }
+
+  @keyframes pgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pgSlideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pgDot { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+  /* Trip map overlay */
+  #pg-map-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    display: flex; flex-direction: column;
+    background: var(--surface);
+    animation: pgFadeIn 0.2s ease;
+  }
+  #pg-map-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px calc(14px + var(--safe-top, 0px));
+    padding-top: calc(14px + var(--safe-top, 0px));
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    flex-shrink: 0; z-index: 2;
+  }
+  #pg-map-container { flex: 1; position: relative; }
+  #pg-map { width: 100%; height: 100%; }
+  #pg-map-legend {
+    position: absolute; bottom: calc(16px + var(--safe-bottom, 0px));
+    left: 12px; z-index: 1000;
+    background: white; border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px; max-height: 220px; overflow-y: auto;
+  }
+  #pg-map-legend label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0; cursor: pointer; user-select: none; font-weight: 600;
+  }
+  #pg-map-legend input[type=checkbox] { accent-color: currentColor; width: 15px; height: 15px; flex-shrink: 0; }
+  .pg-map-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  /* Leaflet popup custom style */
+  .pg-map-popup .leaflet-popup-content-wrapper {
+    border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .pg-map-popup .leaflet-popup-tip-container { display: none; }
+  #pg-nav::-webkit-scrollbar { display: none; }
+
+  /* Day header subtitle truncation on mobile */
+  .pg-day-subtitle { color: var(--ink-faint); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  @media (max-width: 600px) {
+    .pg-day-subtitle { display: none; }
+    .pg-day-subtitle-mobile { display: block !important; color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+  }
+  .pg-day-subtitle-mobile { display: none; }
+
+  /* Picks summary modal */
+  .pg-summary-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .pg-summary-panel { background: var(--surface); border-radius: 20px; width: 100%; max-width: 640px; max-height: 85vh; overflow-y: auto; padding: 28px; }
+  .pg-summary-panel::-webkit-scrollbar { width: 4px; }
+  .pg-summary-panel::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  /* Book-ahead badge */
+  .pg-book-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: #7A3B00; background: #FFF0D6; padding: 2px 7px; border-radius: 999px; white-space: nowrap; margin-left: 4px; vertical-align: middle; }
+
+  /* Driving time pill */
+  .pg-drive-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); background: var(--surface-sunken); padding: 3px 10px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+
+  /* Collapsible rows */
+  .pg-row-content { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; }
+  .pg-row-content.pg-collapsed { max-height: 0 !important; opacity: 0; pointer-events: none; }
+  .pg-row-chevron { transition: transform 0.2s ease; display: inline-flex; align-items: center; margin-left: auto; flex-shrink: 0; opacity: 0.4; }
+  .pg-row-chevron.pg-open { transform: rotate(0deg); }
+  .pg-row-chevron.pg-shut { transform: rotate(-90deg); }
+
+  /* Day notes */
+  .pg-notes-area { width: 100%; border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; font-family: inherit; color: var(--ink); resize: none; min-height: 72px; transition: border-color 0.15s; background: var(--surface); box-sizing: border-box; }
+  .pg-notes-area:focus { outline: none; border-color: var(--accent); }
+  .pg-notes-area::placeholder { color: var(--ink-faint); }
+  .pg-notes-saved { font-size: 11.5px; color: var(--success); font-weight: 600; opacity: 0; transition: opacity 0.3s; }
+  .pg-notes-saved.show { opacity: 1; }
+
+  /* Flight tracker */
+  .pg-flight-live { background: rgba(255,255,255,0.07); border-radius: 10px; padding: 10px 12px; margin-top: 8px; }
+  .pg-flight-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .pg-flight-status.on-time  { background: #E6F7EF; color: #1F9A6E; }
+  .pg-flight-status.delayed  { background: #FEF3E2; color: #B96B1A; }
+  .pg-flight-status.boarding { background: var(--accent-tint); color: var(--accent-dark); }
+  .pg-flight-status.landed   { background: #F0F0F0; color: #555; }
+  .pg-flight-status.unknown  { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+  .pg-track-btn { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 3px 9px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .pg-track-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+  /* Phrasebook */
+  .pg-phrase-row { padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .pg-phrase-row:last-child { border-bottom: none; }
+  .pg-phrase-it { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .pg-phrase-en { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .pg-phrase-tip { font-size: 12px; color: var(--ink-faint); font-style: italic; margin-top: 2px; }
+  .pg-phrase-cat { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-dark); margin: 16px 0 6px; }
+
+  /* Notifications */
+  .pg-notif-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .pg-notif-row:last-child { border-bottom: none; }
+  .pg-notif-toggle { flex-shrink: 0; appearance: none; -webkit-appearance: none; width: 40px; height: 22px; border-radius: 999px; background: var(--line); cursor: pointer; position: relative; transition: background 0.2s; margin-top: 2px; }
+  .pg-notif-toggle:checked { background: var(--accent); }
+  .pg-notif-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: transform 0.2s; }
+  .pg-notif-toggle:checked::after { transform: translateX(18px); }
+  
+  /* We're here GPS button */
+  .pg-gps-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: white; background: var(--accent); border: none; border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .pg-gps-btn:hover { background: var(--accent-dark); }
+  .pg-gps-btn:disabled { opacity: 0.5; cursor: wait; }
+</style>
+
+<div class="pg-root">
+  <div id="pg-app"></div>
+</div>
+
+<script>
+(function() {
+
+  var DEFAULT_DATA = {
+    meta: {
+      title: "Puglia",
+      subtitle: "Daily travel planner",
+      dates: "June 26 \u2013 July 4, 2026",
+      base: "Based in Monopoli \u2014 Valle d'Itria, the White Towns & Salento"
+    },
+    days: [
+      {
+        num: 1, date: "Fri, June 26", title: "Arrival & Monopoli",
+        driveTime: "45 min · Bari \u2192 Monopoli",
+        mustPack: null,
+        logistics: [
+          { icon: "flight", text: "Chi\u0219in\u0103u (RMO) \u2192 Bucharest (OTP)", time: "07:50 \u2192 08:55", meta: "Wizz Air W4 3040 \u00B7 Confirmed", flightNum: "W43040" },
+          { icon: "flight", text: "Bucharest (OTP) \u2192 Bari (BRI)", time: "13:30 \u2192 14:20", meta: "Wizz Air W4 3167 \u00B7 connecting flight", flightNum: "W43167" },
+          { icon: "car", text: "Car pickup \u2014 Centauro Rent a Car", time: "15:00", meta: "Bari Airport \u00B7 VW T-Cross Style or similar \u00B7 Confirmed" },
+          { icon: "hotel", text: "Check-in \u2014 LucAsia, Via Cappuccini 62", time: "16:00", meta: "One-Bedroom House, 8 nights \u00B7 Monopoli \u00B7 Confirmed" }
+        ],
+        route: [
+          { label: "Bari Airport (BRI)", slotLabel: "Airport", lat: 41.139, lng: 16.761 },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { fromRow: "d1-lunch", fallbackLabel: "Lunch" },
+          { fromRow: "d1-activity", fallbackLabel: "Activity" },
+          { fromRow: "d1-dinner", fallbackLabel: "Dinner" }
+        ],
+        rows: [
+          { type: "note", label: "Breakfast", color: "gold", text: "None in Puglia today \u2014 grab something during the Chi\u0219in\u0103u departure or the Bucharest layover (OTP, 07:50\u201313:30 buffer)." },
+          { type: "options", label: "Late lunch", color: "blue", id: "d1-lunch", intro: "~16:30\u201317:00, after check-in at LucAsia (16:00). Keep it light.", items: [
+            { name: "Voyager Bar Bistrot Monopoli", url: "https://www.google.com/maps/place/?q=place_id:ChIJs28CiCg1RhMRy6ebx7JEkec", rating: "4.1", count: "36", note: "under the cathedral, quick & easy", lat: 40.9508783, lng: 17.3042578 },
+            { name: "Caff\u00e8 del Corso", url: "https://www.google.com/maps/place/?q=place_id:ChIJlRmvZS41RhMRJLXC96bKEQ4", rating: "4.5", count: "803", note: "breakfast/brunch/lunch all day", lat: 40.9514046, lng: 17.2972575 },
+            { name: "Any forno near LucAsia", url: null, note: "focaccia/panino \u2014 save room for dinner" }
+          ]},
+          { type: "options", label: "Activity", color: "terracotta", id: "d1-activity", items: [
+            { name: "Old town wander + Castello Carlo V at sunset", url: "https://maps.google.com/?cid=7149733932398495366", rating: "4.4", count: "2,363", note: "free to walk the perimeter", lat: 40.9541325, lng: 17.3052013 }
+          ]},
+          { type: "options", label: "Dinner", color: "blue-deep", id: "d1-dinner", items: [
+            { name: "Trattoria La Locanda dei Mercanti", url: "https://maps.google.com/?cid=4985995455308079004", rating: "4.5", count: "2,747", note: "seafood, local sparkling wine", lat: 40.9528299, lng: 17.302432 },
+            { name: "Il Guazzetto", url: "https://www.google.com/maps/place/?q=place_id:ChIJ8eIAUS81RhMRyykno8WDNMk", rating: "4.5", count: "2,666", note: "fish soup, book ahead", lat: 40.9534492, lng: 17.3019562 },
+            { name: "Pugliami", url: "https://www.google.com/maps/place/?q=place_id:ChIJDYCkgHE1RhMRYYR_vltiymU", rating: "4.6", count: "1,253", note: "raw seafood platters", lat: 40.9527214, lng: 17.3021982 }
+          ]}
+        ]
+      },
+      {
+        num: 2, date: "Sat, June 27", title: "Polignano a Mare + beach",
+        driveTime: "20 min each way",
+        mustPack: "sunscreen, hat, beach bag, cushions for pebble beach",
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { label: "Lama Monachile", slotLabel: "Sightseeing", lat: 40.9958, lng: 17.2177 },
+          { fromRow: "d2-lunch", fallbackLabel: "Lunch" },
+          { fromRow: "d2-beach", fallbackLabel: "Beach" },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d2-breakfast", items: [
+            { name: "Caff\u00e8 Letterario", url: "https://www.google.com/maps/place/?q=place_id:ChIJE5tW1hk1RhMR44IcBlE8A9Q", rating: "4.6", count: "598", note: "puccelle sandwich, Monopoli", lat: 40.9536589, lng: 17.3051372 },
+            { name: "Caff\u00e8 del Corso", url: "https://www.google.com/maps/place/?q=place_id:ChIJlRmvZS41RhMRJLXC96bKEQ4", rating: "4.5", count: "803", note: "eggs & toast, Monopoli", lat: 40.9514046, lng: 17.2972575 },
+            { name: "Habitat Cafe", url: "https://www.google.com/maps/place/?q=place_id:ChIJ37OdEK_LRxMRHiSyFqP33ig", rating: "4.9", count: "267", note: "best croissants \u2014 in Polignano itself", lat: 40.9948346, lng: 17.2263067 }
+          ]},
+          { type: "note", label: "Morning", color: "terracotta",
+            text: "Polignano a Mare is built on a limestone cliff above the sea \u2014 one of the most photogenic spots in all of Puglia. Arrive by 8:30am for the best light and before tour groups arrive.",
+            link: "https://www.google.com/maps/search/?api=1&query=40.9958,17.2177",
+            bullets: [
+              { title: "Lama Monachile beach", desc: "the iconic pebble cove under the bridge \u2014 best from the bridge above for the classic shot, then walk down to swim" },
+              { title: "The bridge (Ponte Borbonico)", desc: "stand on it looking west at dawn for the postcard view; the cove below is magical in the early light" },
+              { title: "Grotta Palazzese cliff walk", desc: "follow the clifftop path north along the old town walls for more sea views and cave openings" },
+              { title: "Centro storico alleys", desc: "the tangle of whitewashed streets above the cliffs \u2014 tiny squares, ceramic shops, and sea glimpses at every corner" },
+              { title: "Abbazia San Vito", desc: "11th-century abbey perched right on the cliff edge, free to enter, often overlooked by day-trippers" }
+            ]
+          },
+          { type: "options", label: "Lunch", color: "blue", id: "d2-lunch", items: [
+            { name: "Restaurant Antiche Mura", url: "https://maps.google.com/?cid=12500380237283993533", rating: "4.6", count: "2,342", note: "elegant, very fresh seafood", lat: 40.9953611, lng: 17.2197847 },
+            { name: "Olio su pane", url: "https://www.google.com/maps/place/?q=place_id:ChIJlTe5mNvLRxMRKD6hsKLdqkA", rating: "4.8", count: "1,147", note: "casual sandwiches, great oil", lat: 40.9953136, lng: 17.2205981 },
+            { name: "La Locanda Porta Picc", url: "https://www.google.com/maps/place/?q=place_id:ChIJD1IIYJPLRxMRwYr7DxwDQR0", rating: "4.6", count: "2,331", note: "catch-of-the-day showcase", lat: 40.9956069, lng: 17.2208762 }
+          ]},
+          { type: "options", label: "Beach", color: "olive", id: "d2-beach", items: [
+            { name: "Lido Cala Paura", url: "https://maps.google.com/?cid=16604619436526819250", rating: "4.2", count: "2,759", note: "local, lively, great value", lat: 40.9992796, lng: 17.2139527 },
+            { name: "Cala San Giovanni", url: "https://www.google.com/maps/place/?q=place_id:ChIJNXnp6azORxMRM9boPDsY8nE", rating: "3.9", count: "1,133", note: "quieter, near Roman bath ruin", lat: 41.01622, lng: 17.1875648 },
+            { name: "Ombrella Beach (cushions at Lama Monachile)", url: "https://www.google.com/maps/place/?q=place_id:ChIJBSyLGwDLRxMRIuVpp5pDgII", rating: "4.8", count: "86", note: "stay put, rent cushions", lat: 40.9957623, lng: 17.2177083 }
+          ]},
+          { type: "options", label: "Dinner", color: "blue-deep", id: "d2-dinner", items: [
+            { name: "L'Osteria di Chichibio", url: "https://www.google.com/maps/place/?q=place_id:ChIJTzCGjuzLRxMRivi6Pifmnj0", rating: "4.4", count: "1,046", note: "Polignano, sea urchin pasta", lat: 40.9968672, lng: 17.2169339 },
+            { name: "Trattoria Il Brigante", url: "https://www.google.com/maps/place/?q=place_id:ChIJzUxIDyY1RhMRLvRcKRsd0vU", rating: "4.5", count: "1,581", note: "Monopoli, top-tier pasta", lat: 40.9537885, lng: 17.302937 },
+            { name: "Al Vicoletto - Cucina di Casa", url: "https://www.google.com/maps/place/?q=place_id:ChIJt01yWBU1RhMRktmnZJOs2SM", rating: "4.7", count: "442", note: "Monopoli, spaghetti all'assassina", lat: 40.952823, lng: 17.3028881 }
+          ]}
+        ]
+      },
+      {
+        num: 3, date: "Sun, June 28", title: "Valle d'Itria \u2014 Alberobello + Locorotondo + Martina Franca",
+        driveTime: "~1.5h total driving",
+        mustPack: "comfortable walking shoes",
+        bookAhead: ["Masseria experience (all three options fill up in summer)"],
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { label: "Alberobello (Rione Monti)", slotLabel: "Sightseeing", lat: 40.7843921, lng: 17.238311 },
+          { fromRow: "d3-lunch", fallbackLabel: "Lunch" },
+          { label: "Locorotondo", slotLabel: "Sightseeing", lat: 40.754777, lng: 17.3267129 },
+          { label: "Martina Franca", slotLabel: "Sightseeing", lat: 40.7009, lng: 17.3337 },
+          { fromRow: "d3-oilcheese", fallbackLabel: "Oil/cheese stop" },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d3-breakfast", items: [
+            { name: "Coppino Monopoli", url: "https://www.google.com/maps/place/?q=place_id:ChIJhY7Mhkc1RhMRO3zz8jsi4S4", rating: "4.7", count: "757", note: "opens 11:30 \u2014 better for late starts", lat: 40.9528226, lng: 17.302394 },
+            { name: "Cos\u00ec Com'era (Alberobello)", url: "https://www.google.com/maps/place/?q=place_id:ChIJi5JtiZ6zRxMRp8ukWykCzxM", rating: "4.6", count: "999", note: "good brunch bowls, book ahead", lat: 40.7840034, lng: 17.2381967 },
+            { name: "Cols (Alberobello)", url: "https://www.google.com/maps/place/?q=place_id:ChIJA8ol0uGzRxMR-JycEZ6J2k4", rating: "4.9", count: "389", note: "best specialty coffee in town", lat: 40.779568, lng: 17.2355209 }
+          ]},
+          { type: "note", label: "Morning", color: "terracotta",
+            text: "Alberobello is a UNESCO World Heritage Site and the trulli capital of Puglia. The cone-shaped stone houses are found nowhere else in the world. Go early \u2014 by 10am the main streets fill with tour buses.",
+            link: "https://www.google.com/maps/search/?api=1&query=40.7843921,17.238311",
+            bullets: [
+              { title: "Rione Monti", desc: "the main trulli district with over 1,000 conical rooftops \u2014 walk the Via Monte San Michele ridge for the best panoramic view" },
+              { title: "Rione Aia Piccola", desc: "the quieter, less touristy trulli neighbourhood across the valley \u2014 people actually live here, far fewer souvenir shops" },
+              { title: "Trullo Sovrano", desc: "the only two-storey trullo in existence, now a small museum \u2014 gives real context on how families lived inside them" },
+              { title: "Sidreria Trullo", desc: "an atmospheric bar in a converted trullo \u2014 good for a coffee or early aperitivo before heading on" },
+              { title: "Symbol spotting", desc: "look at the pinnacles on top of each trullo \u2014 the painted symbols (crosses, suns, hearts) were messages from the stonemason about the family inside" }
+            ]
+          },
+          { type: "options", label: "Lunch", color: "blue", id: "d3-lunch", items: [
+            { name: "Trattoria Casa Amatulli", url: "https://maps.google.com/?cid=13221217147727300292", rating: "4.7", count: "1,663", note: "family-run, homemade pasta", lat: 40.7843921, lng: 17.238311 },
+            { name: "La Nicchia", url: "https://www.google.com/maps/place/?q=place_id:ChIJGV0xT1-yRxMRXCwRQLqq3yA", rating: "4.5", count: "2,477", note: "set in a trullo, bombette", lat: 40.7958107, lng: 17.241931 },
+            { name: "Puglianova ristorante", url: "https://www.google.com/maps/place/?q=place_id:ChIJgejkLZ2zRxMRECF5kU109GQ", rating: "4.8", count: "693", note: "octopus, wild boar tagliatelle", lat: 40.7802954, lng: 17.2445417 }
+          ]},
+          { type: "note", label: "Afternoon \u2014 Locorotondo + Martina Franca", color: "terracotta",
+            text: "Two of the Valle d'Itria's most beautiful towns, 10 minutes apart. Locorotondo first (~30 min), then Martina Franca before heading to the masseria.",
+            link: "https://www.google.com/maps/search/?api=1&query=40.754777,17.3267129",
+            bullets: [
+              { title: "Locorotondo: Via Nardelli & centro storico", desc: "walk the circular old town walls for the valley view, then down through the whitewashed alleys \u2014 named 'round town' for a reason" },
+              { title: "Locorotondo: Chiesa Madre di San Giorgio", desc: "neo-classical facade on the main square, cool interior, free entry" },
+              { title: "Martina Franca: Piazza Roma", desc: "the baroque centrepiece \u2014 Palazzo Ducale on one side, Basilica di San Martino on the other; the whole square is extraordinary" },
+              { title: "Martina Franca: Via Cavour", desc: "the main baroque street running from Piazza Roma \u2014 every building is ornate limestone, no two the same" },
+              { title: "Martina Franca: Porta di Santo Stefano", desc: "the old town gate with the best view back over the valley \u2014 a 5-minute walk from the piazza" }
+            ]
+          },
+          { type: "options", label: "Oil/cheese experience", color: "olive", id: "d3-oilcheese", intro: "Then the masseria oil/cheese experience on the way back:", items: [
+            { name: "Masseria Pezze d'Aglio", url: "https://maps.google.com/?cid=13843547633627672152", rating: "4.9", count: "16", note: "Roman underground mill + oil tasting", bookAhead: true, lat: 40.8212509, lng: 17.4130104 },
+            { name: "Masseria Fragnite", url: "https://www.google.com/maps/place/?q=place_id:ChIJb4GdoIBZRhMRff80-nFYIyI", rating: "4.8", count: "455", note: "farm tour + cheese tasting (~35 min away)", bookAhead: true, lat: 40.663072, lng: 17.5418754 },
+            { name: "Masseria Seppunisi", url: "https://www.google.com/maps/place/?q=place_id:ChIJvR6EziBaRhMRMK2fpxkDLls", rating: "4.9", count: "683", note: "make your own mozzarella/burrata", bookAhead: true, lat: 40.6723312, lng: 17.4921193 }
+          ]},
+          { type: "options", label: "Dinner", color: "blue-deep", id: "d3-dinner", items: [
+            { name: "Ristorante Osteria Il Rosone", url: "https://www.google.com/maps/place/?q=place_id:ChIJTzNC0RNTRhMR3nUmp1qgu20", rating: "4.4", count: "751", note: "Locorotondo, best orecchiette", lat: 40.7528643, lng: 17.3291405 },
+            { name: "Ai Tre Santi", url: "https://www.google.com/maps/place/?q=place_id:ChIJr23ZmoNSRhMR5knMEjiu5Pk", rating: "4.5", count: "728", note: "romantic, lamb chops", lat: 40.753634, lng: 17.329283 },
+            { name: "Pizzeria Casa Pinto", url: "https://www.google.com/maps/place/?q=place_id:ChIJu-bHfIRSRhMR-OB1BibCHRA", rating: "4.5", count: "2,610", note: "lighter pizza night option", lat: 40.7523923, lng: 17.3291235 }
+          ]}
+        ]
+      },
+      {
+        num: 4, date: "Mon, June 29", title: "Full beach day",
+        driveTime: "5\u201315 min · local only",
+        mustPack: "sunscreen, hat, towels, cash for beach club",
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { fromRow: "d4-beach", fallbackLabel: "Beach" },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d4-breakfast", items: [
+            { name: "Caff\u00e8 del Corso", url: "https://www.google.com/maps/place/?q=place_id:ChIJlRmvZS41RhMRJLXC96bKEQ4", rating: "4.5", count: "803", note: "Monopoli", lat: 40.9514046, lng: 17.2972575 },
+            { name: "Caff\u00e8 Letterario", url: "https://www.google.com/maps/place/?q=place_id:ChIJE5tW1hk1RhMR44IcBlE8A9Q", rating: "4.6", count: "598", note: "Monopoli", lat: 40.9536589, lng: 17.3051372 },
+            { name: "Coppino Monopoli", url: "https://www.google.com/maps/place/?q=place_id:ChIJhY7Mhkc1RhMRO3zz8jsi4S4", rating: "4.7", count: "757", note: "later, heartier brunch", lat: 40.9528226, lng: 17.302394 }
+          ]},
+          { type: "options", label: "Beach + lunch", color: "olive", id: "d4-beach", intro: "Eat at the beach club itself \u2014 all have solid kitchens, no separate booking needed.", items: [
+            { name: "Lido Cala Paradiso", url: "https://maps.google.com/?cid=16837429049380966660", rating: "4.3", count: "1,398", note: "scenic cove, book sunbeds online", lat: 40.9437261, lng: 17.3133478 },
+            { name: "Coco Beach", url: "https://www.google.com/maps/place/?q=place_id:ChIJ2ZZDyibPRxMRstMeU8iqFQw", rating: "4.2", count: "1,701", note: "pool + sea, family-friendly", lat: 41.0363916, lng: 17.1443194 },
+            { name: "Malachite Beach Club", url: "https://www.google.com/maps/place/?q=place_id:ChIJXzK0E9k1RhMRLzsNzouqqps", rating: "5.0", count: "4", note: "newer, quieter, small sample size", lat: 40.9448059, lng: 17.3113627 }
+          ]},
+          { type: "options", label: "Dinner", color: "blue-deep", id: "d4-dinner", items: [
+            { name: "Coppino Monopoli", url: "https://www.google.com/maps/place/?q=place_id:ChIJhY7Mhkc1RhMRO3zz8jsi4S4", rating: "4.7", count: "757", note: "orecchiette specialty", lat: 40.9528226, lng: 17.302394 },
+            { name: "Appet\u00ec Po' Bistrot", url: "https://www.google.com/maps/place/?q=place_id:ChIJRab4dng1RhMR6GZ4daNqZJ4", rating: "4.9", count: "2,371", note: "check hours \u2014 may be lunch-only", lat: 40.9537714, lng: 17.2960897 },
+            { name: "Al Vicoletto - Cucina di Casa", url: "https://www.google.com/maps/place/?q=place_id:ChIJt01yWBU1RhMRktmnZJOs2SM", rating: "4.7", count: "442", note: "spaghetti all'assassina", lat: 40.952823, lng: 17.3028881 }
+          ]}
+        ]
+      },
+      {
+        num: 5, date: "Tue, June 30", title: "Zoosafari Fasano + Ostuni + Cisternino",
+        driveTime: "~1.5h total driving",
+        mustPack: "sunscreen, hat, water, camera with zoom",
+        bookAhead: ["Zoosafari tickets online (skip the gate queue)", "Al Vecchio Fornello \u2014 arrives full by 7:30pm in summer"],
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { label: "Zoosafari Fasano", slotLabel: "Safari", lat: 40.8212, lng: 17.3598 },
+          { label: "Ostuni", slotLabel: "Sightseeing", lat: 40.7338616, lng: 17.5795599 },
+          { label: "Cisternino", slotLabel: "Sightseeing", lat: 40.7415764, lng: 17.4262738 },
+          { fromRow: "d5-dinner", fallbackLabel: "Fornello dinner" },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d5-breakfast", intro: "In Monopoli before driving — aim to leave by 9:00am to hit Zoosafari at opening.", items: [
+            { name: "Caff\u00e8 del Corso", url: "https://www.google.com/maps/place/?q=place_id:ChIJlRmvZS41RhMRJLXC96bKEQ4", rating: "4.5", count: "803", note: "quick & reliable", lat: 40.9514046, lng: 17.2972575 },
+            { name: "Caff\u00e8 Letterario", url: "https://www.google.com/maps/place/?q=place_id:ChIJE5tW1hk1RhMR44IcBlE8A9Q", rating: "4.6", count: "598", note: "opens 8:00, puccelle sandwich", lat: 40.9536589, lng: 17.3051372 },
+            { name: "Any bar near LucAsia", url: null, note: "cornetto + coffee, keep it fast" }
+          ]},
+          { type: "note", label: "Morning \u2014 Zoosafari", color: "terracotta",
+            text: "Zoosafari Fasano \u2014 30 min drive from Monopoli. Italy's largest safari park: 140 hectares, drive your own car through open habitat shared with lions, giraffes, elephants, zebras and rhinos.",
+            link: "https://www.google.com/maps/search/?api=1&query=40.8212,17.3598",
+            bullets: [
+              { title: "Arrive at 9:30am opening", desc: "animals are most active in the cool of the morning; queues and heat both build fast after 11am" },
+              { title: "Safari drive first, always", desc: "do the drive-through before anything else \u2014 it's the reason you're here; budget 60\u201390 minutes" },
+              { title: "Windows up in predator zones", desc: "lion and tiger sections require closed windows; open them freely in the herbivore areas for photos" },
+              { title: "Giraffe encounter", desc: "there's a stretch where giraffes walk freely across the road \u2014 plan to pause here" },
+              { title: "Skip the Fasanolandia rides", desc: "the fairground section is aimed at young children; entry covers it but it adds little for two adults" },
+              { title: "Price & booking", desc: "~\u20ac30\u201334pp \u2014 book online in advance to skip the ticket queue entirely, especially on weekends" }
+            ]
+          },
+          { type: "options", label: "Lunch", color: "blue", id: "d5-lunch", intro: "After the safari (~13:00\u201314:00), drive 25 min to Ostuni for a late lunch:", items: [
+            { name: "Il Posto Affianco", url: "https://www.google.com/maps/place/?q=place_id:ChIJU8WmpV5DRhMRpo-KTwPOf1k", rating: "4.5", count: "2,792", note: "versatile, rooftop views", lat: 40.7338616, lng: 17.5795599 },
+            { name: "Ramunno Bistrot", url: "https://www.google.com/maps/place/?q=place_id:ChIJUVPEzfBDRhMRsQAdLtGz_hM", rating: "4.7", count: "554", note: "pick-your-fish seafood", lat: 40.7325042, lng: 17.5786059 },
+            { name: "Osteria pizzeria Sant'Oronzo", url: "https://www.google.com/maps/place/?q=place_id:ChIJP0F626JDRhMRfaCbTN_5siQ", rating: "4.6", count: "1,159", note: "casual & central", lat: 40.7335786, lng: 17.5782353 }
+          ]},
+          { type: "options", label: "Dinner \u2014 fornello pronto", color: "blue-deep", id: "d5-dinner", intro: "Drive 20 min to Cisternino for the fornello pronto experience \u2014 pick your meat, they grill it. Arrive by 7pm, fills fast.", items: [
+            { name: "Al Vecchio Fornello", url: "https://maps.google.com/?cid=14005624998243163563", rating: "4.3", count: "1,812", note: "the most famous one", bookAhead: true, lat: 40.7415764, lng: 17.4262738 },
+            { name: "Zio Pietro", url: "https://www.google.com/maps/place/?q=place_id:ChIJN88H3tVRRhMRsUw4_iELBlc", rating: "4.5", count: "1,257", note: "rustic alley setting", lat: 40.7415513, lng: 17.4266328 },
+            { name: "Braceria Macelleria Soleti", url: "https://www.google.com/maps/place/?q=place_id:ChIJU0bYOvxPRhMRIwoA_b4jMOg", rating: "4.4", count: "1,064", note: "in Casalini, less touristy", lat: 40.7390219, lng: 17.4729117 }
+          ]},
+          { type: "flag", text: "Full day \u2014 Zoosafari + Ostuni + Cisternino. Drop the beach on this day and save that energy for the fornello dinner. Peak summer tip: arrive at Zoosafari right at 9:30am before the queues build." }
+        ]
+      },
+      {
+        num: 6, date: "Wed, July 1", title: "Salento \u2014 Lecce + Otranto + beach",
+        driveTime: "~2.5h total driving",
+        mustPack: "sunscreen, hat, beach bag, walking shoes for old towns",
+        bookAhead: ["Materia Hostaria Otranto \u2014 tasting menu, tiny room, books weeks ahead"],
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { fromRow: "d6-breakfast", fallbackLabel: "Breakfast" },
+          { label: "Lecce (Piazza del Duomo)", slotLabel: "Sightseeing", lat: 40.3517, lng: 18.1741 },
+          { fromRow: "d6-lunch", fallbackLabel: "Lunch" },
+          { label: "Otranto", slotLabel: "Sightseeing", lat: 40.146204, lng: 18.4916683 },
+          { fromRow: "d6-otranto-beach", fallbackLabel: "Beach" },
+          { fromRow: "d6-dinner", fallbackLabel: "Dinner" },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d6-breakfast", intro: "In Lecce, on arrival (~1h drive):", items: [
+            { name: "Too Much - Brunch e Caf\u00e9", url: "https://www.google.com/maps/place/?q=place_id:ChIJKUGNZVgvRBMRZoNZ8DyL8R8", rating: "4.8", count: "557", note: "salmon Benedict, lovely seating", lat: 40.3542832, lng: 18.1685954 },
+            { name: "Filiera Caf\u00e9", url: "https://www.google.com/maps/place/?q=place_id:ChIJZ25StJQvRBMR2hpekIO9O_0", rating: "4.9", count: "324", note: "specialty coffee, quiet courtyard", lat: 40.3530699, lng: 18.1674078 },
+            { name: "Pop Cafe", url: "https://www.google.com/maps/place/?q=place_id:ChIJi3gCp6YvRBMR_6Me-wrsCNc", rating: "4.5", count: "263", note: "avocado toast, relaxed", lat: 40.3501836, lng: 18.1698341 }
+          ]},
+          { type: "options", label: "Morning \u2014 Lecce", color: "terracotta", id: "d6-pasticciotto", intro: "Lecce old town: Piazza del Duomo, Santa Croce basilica, Roman amphitheater. Stop for a pasticciotto \u2014 the city's iconic pastry \u2014 at one of these:", items: [
+            { name: "Pasticceria 4/quarti", url: "https://maps.google.com/?cid=15684958069529114876", rating: "4.8", count: "174", note: null, lat: 40.3541614, lng: 18.1740386 },
+            { name: "Natale Pasticceria", url: "https://www.google.com/maps/place/?q=place_id:ChIJs9KQdOQuRBMRJOXSIN_iy1w", rating: "4.6", count: "2,176", note: null, lat: 40.3533655, lng: 18.1734223 }
+          ]},
+          { type: "options", label: "Lunch", color: "blue", id: "d6-lunch", intro: "Aim for 12:30pm so you're done and driving by 2:30pm \u2014 most shops and venues in Otranto close 1\u20135pm (la pausa), so arriving around 5pm means you hit the old town as things reopen:", items: [
+            { name: "TAULA", url: "https://www.google.com/maps/place/?q=place_id:ChIJ34kwbW8vRBMRz4yCW_PDDKE", rating: "4.8", count: "1,251", note: "Salento puccias, cathedral view", lat: 40.3525243, lng: 18.1688599 },
+            { name: "OSTERIA 203", url: "https://www.google.com/maps/place/?q=place_id:ChIJk3mRRhs7RBMRgnGGOjQOkfw", rating: "4.5", count: "1,955", note: "black garlic carbonara", lat: 40.3505399, lng: 18.1738791 },
+            { name: "Osteria Da Angiulino", url: "https://www.google.com/maps/place/?q=place_id:ChIJy7VTdeQuRBMRbvjebxB6yVk", rating: "4.3", count: "2,624", note: "most traditional, fair prices", lat: 40.3563426, lng: 18.1705567 }
+          ]},
+          { type: "options", label: "Afternoon \u2014 Otranto + beach", color: "olive", id: "d6-otranto-beach", intro: "Drive 45 min to Otranto \u2014 cathedral + old town, then swim:", items: [
+            { name: "Baia dei Turchi", url: "https://maps.google.com/?cid=2046118096831582924", rating: "4.5", count: "6,813", note: "soft sand, turquoise water", lat: 40.1921958, lng: 18.4643386 },
+            { name: "Torre dell'Orso", url: "https://www.google.com/maps/place/?q=place_id:ChIJPRx90gZIRBMRl1WZQ9AtNrs", rating: "4.4", count: "8,505", note: "40 min further, forest-fringed", lat: 40.2713711, lng: 18.4310853 }
+          ]},
+          { type: "options", label: "Dinner", color: "blue-deep", id: "d6-dinner", intro: "In Otranto, before the drive back:", items: [
+            { name: "Vicolo Matto Fishbar", url: "https://www.google.com/maps/place/?q=place_id:ChIJ6zcs8ypBRBMRaYw5VCmcwog", rating: "4.8", count: "762", note: "creative raw fish & cheese", lat: 40.1454057, lng: 18.492833 },
+            { name: "Materia Hostaria", url: "https://www.google.com/maps/place/?q=place_id:ChIJv126ZgBBRBMRDwLKpM-ONa4", rating: "4.9", count: "81", note: "tasting menu, worth a splurge — book weeks ahead", bookAhead: true, lat: 40.1400785, lng: 18.4830192 },
+            { name: "Vecchia Otranto", url: "https://www.google.com/maps/place/?q=place_id:ChIJR_8uQw5BRBMRmF5Hf5qhxIc", rating: "4.4", count: "1,209", note: "casual, fair prices", lat: 40.146204, lng: 18.4916683 }
+          ]},
+          { type: "flag", text: "Long day \u2014 Lecce \u2192 Otranto \u2192 Monopoli is ~2.5h of total driving. Pace it loosely. La pausa reminder: aim to finish lunch by 2:30pm so you arrive in Otranto around 5pm when everything reopens." }
+        ]
+      },
+      {
+        num: 7, date: "Thu, July 2", title: "Beach + optional wine tasting",
+        driveTime: "30 min if doing winery · local if beach",
+        mustPack: "sunscreen, hat, towels",
+        bookAhead: ["All three wineries \u2014 call or email ahead, especially in July"],
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { fromRow: "d7-wine", fallbackLabel: "Wine / beach" },
+          { fromRow: "d7-dinner", fallbackLabel: "Dinner" },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d7-breakfast", items: [
+            { name: "Caff\u00e8 del Corso", url: "https://www.google.com/maps/place/?q=place_id:ChIJlRmvZS41RhMRJLXC96bKEQ4", rating: "4.5", count: "803", note: "Monopoli", lat: 40.9514046, lng: 17.2972575 },
+            { name: "Caf\u00e8 Machiavelli", url: "https://www.google.com/maps/place/?q=place_id:ChIJQwaDATk1RhMRUbDZqbozGxY", rating: "4.7", count: "328", note: "Monopoli, specialty coffee", lat: 40.9528349, lng: 17.3029507 },
+            { name: "Coppino Monopoli", url: "https://www.google.com/maps/place/?q=place_id:ChIJhY7Mhkc1RhMRO3zz8jsi4S4", rating: "4.7", count: "757", note: null, lat: 40.9528226, lng: 17.302394 }
+          ]},
+          { type: "note", label: "Beach / lunch", color: "olive", text: "Default: beach club (lunch on-site, as Day 4). Wine alternative below pairs lunch right into the tasting." },
+          { type: "options", label: "Optional wine", color: "terracotta", id: "d7-wine", intro: "When booking, ask specifically for the rosato (ros\u00e9) versions of Primitivo and Negroamaro alongside the reds \u2014 pale-pink, hints of strawberry and spice, and much more interesting than Proven\u00e7al ros\u00e9s. Perfect in 38\u00b0C heat. All three wineries below can accommodate this on request:", items: [
+            { name: "Cantina Mir (Locorotondo)", url: "https://maps.google.com/?cid=6891360500261948307", rating: "4.8", count: "29", note: "intimate, personal hosting", bookAhead: true, lat: 40.754777, lng: 17.3267129 },
+            { name: "Cantina Masseria Torricella", url: "https://www.google.com/maps/place/?q=place_id:ChIJzSAA3byzRxMROwHsMx8byV0", rating: "4.7", count: "114", note: "feels like a long Italian lunch", bookAhead: true, lat: 40.8248651, lng: 17.223279 },
+            { name: "Wine Experience Vigna il Castagno", url: "https://www.google.com/maps/place/?q=place_id:ChIJf86thdytRxMRos2YczdwJQI", rating: "4.9", count: "280", note: "Martina Franca, picnic option", bookAhead: true, lat: 40.720988, lng: 17.2429264 }
+          ]},
+          { type: "options", label: "Dinner", color: "blue-deep", id: "d7-dinner", items: [
+            { name: "Trattoria Il Brigante", url: "https://www.google.com/maps/place/?q=place_id:ChIJzUxIDyY1RhMRLvRcKRsd0vU", rating: "4.5", count: "1,581", note: "if not done already", lat: 40.9537885, lng: 17.302937 },
+            { name: "La Locanda sul Porto", url: "https://www.google.com/maps/place/?q=place_id:ChIJsaHRESY1RhMRytEIdiW777w", rating: "4.4", count: "2,223", note: "creative seafood", lat: 40.9539485, lng: 17.3029615 },
+            { name: "Al Vicoletto - Cucina di Casa", url: "https://www.google.com/maps/place/?q=place_id:ChIJt01yWBU1RhMRktmnZJOs2SM", rating: "4.7", count: "442", note: null, lat: 40.952823, lng: 17.3028881 }
+          ]}
+        ]
+      },
+      {
+        num: 8, date: "Fri, July 3", title: "Bari Vecchia + farewell dinner",
+        driveTime: "45 min each way",
+        mustPack: "comfortable shoes for cobblestones",
+        bookAhead: ["La Cantina dello Zio \u2014 extremely popular, book 3\u20135 days ahead"],
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { label: "Bari Vecchia", slotLabel: "Sightseeing", lat: 41.128, lng: 16.871 },
+          { fromRow: "d8-lunch", fallbackLabel: "Lunch" },
+          { fromRow: "d8-dinner", fallbackLabel: "Farewell dinner" },
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d8-breakfast", intro: "In Monopoli before driving, or wait for Bari:", items: [
+            { name: "Caff\u00e8 Letterario (Monopoli)", url: "https://www.google.com/maps/place/?q=place_id:ChIJE5tW1hk1RhMR44IcBlE8A9Q", rating: "4.6", count: "598", note: null, lat: 40.9536589, lng: 17.3051372 },
+            { name: "Veronero Artisan Coffee & Bakery (Bari)", url: "https://www.google.com/maps/place/?q=place_id:ChIJYaT0GmHoRxMRtyPa3D0J9Js", rating: "4.6", count: "782", note: "excellent specialty coffee", lat: 41.1253986, lng: 16.8688274 },
+            { name: "Antico Caff\u00e8 del Carmine (Bari)", url: "https://www.google.com/maps/place/?q=place_id:ChIJ2WuppGPoRxMR2zqpyInSw5s", rating: "4.7", count: "982", note: "very local, pistachio cannoli", lat: 41.1291052, lng: 16.86914 }
+          ]},
+          { type: "options", label: "Lunch", color: "blue", id: "d8-lunch", intro: "In Bari Vecchia:", items: [
+            { name: "La Tana del Polpo", url: "https://www.google.com/maps/place/?q=place_id:ChIJ281Eq2boRxMRVJyrdBu7_oo", rating: "4.2", count: "8,263", note: "spaghetti assassina, octopus", lat: 41.1266851, lng: 16.8707938 },
+            { name: "LA BEUAT", url: "https://www.google.com/maps/place/?q=place_id:ChIJo_xHFrHpRxMRNVwVPK-KDSU", rating: "4.6", count: "1,020", note: "orecchiette specialty", lat: 41.1277141, lng: 16.8681935 },
+            { name: "Il Caffettaio", url: "https://www.google.com/maps/place/?q=place_id:ChIJfde0tozpRxMRz2sicYNk0NE", rating: "4.9", count: "855", note: "lighter coffee & pastry lunch", lat: 41.1242926, lng: 16.8717241 }
+          ]},
+          { type: "note", label: "Afternoon", color: "terracotta",
+            text: "Bari Vecchia is one of the most authentic old towns in southern Italy \u2014 a dense labyrinth of alleys that still functions as a real neighbourhood, not a tourist set.",
+            link: "https://www.google.com/maps/search/?api=1&query=41.128,16.871",
+            bullets: [
+              { title: "Orecchiette-making nonnas", desc: "Via dell'Arco Basso and nearby alleys \u2014 elderly women sit in doorways making pasta by hand; genuine, not staged, buy a bag if you want" },
+              { title: "Basilica di San Nicola", desc: "one of the most important Romanesque churches in Italy; crypt below holds the relics of Saint Nicholas (yes, that one); free entry" },
+              { title: "Crudo di mare at the porto vecchio", desc: "the old harbour fish market \u2014 fishermen sell raw sea urchins, oysters and shellfish straight from the boat to eat standing at the wall; the most distinctly Puglian food experience on the whole trip" },
+              { title: "Cathedral di San Sabino", desc: "often missed in favour of San Nicola, but the cathedral is actually older and the interior is beautifully stark \u2014 5 min walk away" },
+              { title: "Lungomare aperitivo", desc: "the waterfront promenade at sunset \u2014 walk south toward Piazza Ferrarese for the best cocktail bars and sea views before dinner" }
+            ]
+          },
+          { type: "options", label: "Farewell dinner", color: "blue-deep", id: "d8-dinner", items: [
+            { name: "La Cantina dello Zio", url: "https://maps.google.com/?cid=4551221789965474101", rating: "4.7", count: "16,193", note: "battle-tested favorite — book 3-5 days ahead", bookAhead: true, lat: 41.1292301, lng: 16.8714095 },
+            { name: "Ant\u00f2 Cucina Tipica Pugliese", url: "https://www.google.com/maps/place/?q=place_id:ChIJndcOmW_pRxMRfNxFivXGCMo", rating: "4.6", count: "12,010", note: "excellent seafood, old-town terrace", lat: 41.1288684, lng: 16.8713696 },
+            { name: "Le Nicchie", url: "https://www.google.com/maps/place/?q=place_id:ChIJ-SEWZmToRxMRlwwM22YjCjQ", rating: "4.7", count: "3,257", note: "quieter street, great service", lat: 41.1287374, lng: 16.8721326 }
+          ]}
+        ]
+      },
+      {
+        num: 9, date: "Sat, July 4", title: "Departure",
+        driveTime: "45 min · Monopoli \u2192 Bari Airport",
+        mustPack: null,
+        logistics: [
+          { icon: "hotel", text: "Check-out \u2014 LucAsia, Monopoli", time: "10:00", meta: "Late checkout, end of 8-night stay" },
+          { icon: "car", text: "Car drop-off \u2014 Centauro Rent a Car", time: "15:00 (listed)", meta: "Bari Airport \u00B7 \u26A0 conflicts with 14:55 flight \u2014 confirm earlier slot" },
+          { icon: "flight", text: "Bari (BRI) \u2192 Bucharest (OTP)", time: "14:55 \u2192 17:40", meta: "Wizz Air W4 3168", flightNum: "W43168" },
+          { icon: "flight", text: "Bucharest (OTP) \u2192 Chi\u0219in\u0103u (RMO)", time: "22:05 \u2192 23:15", meta: "TAROM RO209 \u00B7 Confirmed", flightNum: "RO209" }
+        ],
+        route: [
+          { label: "LucAsia, Monopoli", lat: 40.953, lng: 17.301 },
+          { label: "Bari Airport (BRI)", slotLabel: "Airport", lat: 41.139, lng: 16.761 }
+        ],
+        rows: [
+          { type: "options", label: "Breakfast", color: "gold", id: "d9-breakfast", intro: "Early, before packing/checkout:", items: [
+            { name: "Caff\u00e8 del Corso", url: "https://www.google.com/maps/place/?q=place_id:ChIJlRmvZS41RhMRJLXC96bKEQ4", rating: "4.5", count: "803", note: "opens 8:30, sit-down option", lat: 40.9514046, lng: 17.2972575 },
+            { name: "Caff\u00e8 Letterario", url: "https://www.google.com/maps/place/?q=place_id:ChIJE5tW1hk1RhMR44IcBlE8A9Q", rating: "4.6", count: "598", note: "opens 8:00, the puccelle sandwich", lat: 40.9536589, lng: 17.3051372 },
+            { name: "Any bar near LucAsia", url: null, note: "quick coffee + cornetto, minimal" }
+          ]},
+          { type: "note", label: "Lunch", color: "blue", text: "Light / grab-and-go only \u2014 flight is 14:55, car drop-off listed 15:00. Pick up a panino or focaccia on the way to the car return, or eat post-security at Bari Airport if timing allows." },
+          { type: "note", label: "Dinner", color: "blue-deep", text: "None in Puglia \u2014 you'll be flying (Bari \u2192 Bucharest 14:55\u201317:40, then Bucharest \u2192 Chi\u0219in\u0103u 22:05\u201323:15). Worth a proper meal during the ~4hr OTP layover, since you won't eat again until close to midnight." },
+          { type: "flag", text: "Confirm car drop-off timing with Centauro \u2014 15:00 drop-off and a 14:55 departure don't leave room for security. 13:00\u201313:30 drop-off is likely safer." }
+        ]
+      }
+    ]
+  };
+
+  var STORAGE_KEY = "puglia-trip-data-v2";
+  var NOTES_KEY = "puglia-notes-v1";
+  var NOTIFS_KEY = "puglia-notifs-v1";
+
+  // Paste your AviationStack free API key here (aviationstack.com/signup/free)
+  var AVIATIONSTACK_KEY = "77c7711443e58b9a89b55d42d02804a5";
+
+  var pgNotes = {};         // { dayNum: "text" }
+  var pgNotifSettings = {}; // { notifId: true/false }
+  var _collapsedRows = {};  // { rowId: true }
+  var SELECTIONS_KEY = "puglia-selections-v1";
+  var pgData = null;
+  var pgSelections = {};
+  var activeDay = 1;
+
+  var ROW_ICON_PATHS = {
+    gold: '<circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke-linecap="round"/>',
+    blue: '<path d="M7 3v7a2 2 0 002 2v9M7 3v7M11 3v7M16 3v18M16 3a4 4 0 014 4v3a2 2 0 01-2 2h-2" stroke-linecap="round" stroke-linejoin="round"/>',
+    "blue-deep": '<path d="M20.5 14.5A8.5 8.5 0 119.5 3.5a7 7 0 0011 11z" stroke-linejoin="round"/>',
+    terracotta: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M8 6V4h8v2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="2.3"/>',
+    olive: '<path d="M3 17c2-3 4-4 9-4s7 1 9 4M3 12c2-3 4-4 9-4s7 1 9 4" stroke-linecap="round" stroke-linejoin="round"/>'
+  };
+  var ROW_ACCENT = {
+    gold: "#E0622A", blue: "#5B5FEF", "blue-deep": "#4347C4", terracotta: "#1F9A6E", olive: "#0EA5B0"
+  };
+
+  function rowIcon(colorKey) {
+    var color = ROW_ACCENT[colorKey] || "var(--accent)";
+    var path = ROW_ICON_PATHS[colorKey] || "";
+    return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2">' + path + '</svg>';
+  }
+
+  function el(tag, attrs, children) {
+    var e = document.createElement(tag);
+    attrs = attrs || {};
+    for (var k in attrs) {
+      if (k === "style") e.style.cssText = attrs[k];
+      else if (k === "html") e.innerHTML = attrs[k];
+      else if (k === "text") e.textContent = attrs[k];
+      else if (k === "class") e.className = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    (children || []).forEach(function(c) { if (c) e.appendChild(c); });
+    return e;
+  }
+
+  // ─── Firebase real-time sync ──────────────────────────────────────────────
+  // Paste your Firebase config here after creating the project.
+  // Leave as null to use localStorage only (offline mode).
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAkqVliu1zHBanWFNKKxS5av4N94EXJE6Q",
+    authDomain: "puglia-this-summer.firebaseapp.com",
+    databaseURL: "https://puglia-this-summer-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "puglia-this-summer",
+    storageBucket: "puglia-this-summer.firebasestorage.app",
+    messagingSenderId: "588609076240",
+    appId: "1:588609076240:web:86f97fd9df9fcfbb1c9e95"
+  };
+  // Example:
+  // var FIREBASE_CONFIG = {
+  //   apiKey: "AIza...",
+  //   authDomain: "puglia-trip-xxx.firebaseapp.com",
+  //   databaseURL: "https://puglia-trip-xxx-default-rtdb.europe-west1.firebasedatabase.app",
+  //   projectId: "puglia-trip-xxx"
+  // };
+
+  var FIREBASE_PATH = "/puglia-trip/selections";
+  var _fbDatabase = null;
+  var _fbRef = null;
+  var _isSyncing = false; // prevent echo: ignore remote updates we caused
+
+  function setSyncStatus(status) {
+    // status: 'synced' | 'syncing' | 'offline' | 'local'
+    var el = document.getElementById("pg-sync-status");
+    if (!el) return;
+    var icons = {
+      synced:  { icon: "\u2713", color: "#1F9A6E", text: "Synced" },
+      syncing: { icon: "\u21BB", color: "#B98A2E", text: "Syncing\u2026" },
+      offline: { icon: "\u26A0", color: "#E0622A", text: "Offline" },
+      local:   { icon: "\uD83D\uDCBE", color: "#9CA0AA", text: "Local only" }
+    };
+    var s = icons[status] || icons.local;
+    el.innerHTML = '<span style="font-size:12px;">' + s.icon + '</span><span>' + s.text + '</span>';
+    el.style.color = s.color;
+  }
+
+  async function saveSelections() {
+    var json = JSON.stringify(pgSelections);
+    // Always write to localStorage as fallback
+    try { localStorage.setItem(SELECTIONS_KEY, json); } catch (e) {}
+    try { await window.storage.set(SELECTIONS_KEY, json, false); } catch (e) {}
+    // Write to Firebase if connected
+    if (_fbRef) {
+      _isSyncing = true;
+      setSyncStatus("syncing");
+      try {
+        await _fbRef.set(pgSelections);
+        setSyncStatus("synced");
+      } catch (e) {
+        setSyncStatus("offline");
+        console.warn("[Sync] Firebase write failed:", e.message);
+      } finally {
+        setTimeout(function() { _isSyncing = false; }, 500);
+      }
+    }
+  }
+
+  function applyRemoteSelections(remoteSelections) {
+    if (_isSyncing) return; // ignore our own writes echoing back
+    var changed = JSON.stringify(pgSelections) !== JSON.stringify(remoteSelections);
+    if (!changed) return;
+    pgSelections = remoteSelections || {};
+    // Save locally so it persists offline
+    try { localStorage.setItem(SELECTIONS_KEY, JSON.stringify(pgSelections)); } catch (e) {}
+    // Surgical DOM update — update all visible option rows and route preview
+    var allRows = document.querySelectorAll(".pg-option-row");
+    allRows.forEach(function(rowEl) {
+      var rId = rowEl.dataset.rowId;
+      var iIdx = parseInt(rowEl.dataset.itemIdx, 10);
+      var isPicked = pgSelections[rId] === iIdx;
+      if (isPicked) rowEl.classList.add("pg-picked"); else rowEl.classList.remove("pg-picked");
+      rowEl.style.opacity = (pgSelections[rId] != null && !isPicked) ? "0.65" : "";
+      var cb = rowEl.querySelector(".pg-check");
+      if (cb) cb.checked = isPicked;
+      var nameSpan = rowEl.querySelector(".pg-item-name");
+      if (nameSpan) nameSpan.style.fontWeight = isPicked ? "700" : "600";
+    });
+    // Refresh route preview for current day
+    var dayNum = activeDay;
+    var day = pgData.days.filter(function(d) { return d.num === dayNum; })[0];
+    if (day) updateRoutePreview(day);
+    // Update My picks count in nav if panel is open
+    var countEl = document.querySelector("[data-picks-count]");
+    var total = Object.values(pgSelections).filter(function(v) { return v != null; }).length;
+    if (countEl) countEl.textContent = total > 0 ? " (" + total + ")" : "";
+    setSyncStatus("synced");
+    showToast("\u21BB Picks updated by other device");
+  }
+
+  async function initFirebase() {
+    if (!FIREBASE_CONFIG) {
+      setSyncStatus("local");
+      return;
+    }
+    try {
+      // Load Firebase SDK dynamically
+      await new Promise(function(resolve, reject) {
+        var s1 = document.createElement("script");
+        s1.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";
+        s1.onload = resolve; s1.onerror = reject;
+        document.head.appendChild(s1);
+      });
+      await new Promise(function(resolve, reject) {
+        var s2 = document.createElement("script");
+        s2.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js";
+        s2.onload = resolve; s2.onerror = reject;
+        document.head.appendChild(s2);
+      });
+      var app = firebase.initializeApp(FIREBASE_CONFIG);
+      _fbDatabase = firebase.database(app);
+      _fbRef = _fbDatabase.ref(FIREBASE_PATH);
+      // Listen for remote changes in real time
+      _fbRef.on("value", function(snapshot) {
+        var remote = snapshot.val();
+        if (remote) applyRemoteSelections(remote);
+        setSyncStatus("synced");
+      }, function(err) {
+        setSyncStatus("offline");
+        console.warn("[Sync] Firebase read error:", err.message);
+      });
+
+      // Sync notes separately
+      _fbDatabase.ref('/puglia-trip/notes').on('value', function(snap) {
+        var remoteNotes = snap.val();
+        if (remoteNotes) {
+          Object.keys(remoteNotes).forEach(function(k) {
+            pgNotes[parseInt(k)] = remoteNotes[k];
+          });
+          // Update any visible note textareas
+          document.querySelectorAll('.pg-notes-area').forEach(function(ta) {
+            var dn = parseInt(ta.dataset.day);
+            if (dn && pgNotes[dn] !== undefined && ta.value !== pgNotes[dn]) {
+              ta.value = pgNotes[dn];
+            }
+          });
+        }
+      });
+      setSyncStatus("synced");
+      console.log("[Sync] Firebase connected");
+    } catch (e) {
+      setSyncStatus("offline");
+      console.warn("[Sync] Firebase init failed:", e.message);
+    }
+  }
+
+  async function init() {
+    // Load app data
+    try {
+      var stored = await window.storage.get(STORAGE_KEY, false);
+      pgData = stored && stored.value ? JSON.parse(stored.value) : DEFAULT_DATA;
+    } catch (e) {
+      pgData = DEFAULT_DATA;
+      try { await window.storage.set(STORAGE_KEY, JSON.stringify(DEFAULT_DATA), false); } catch (e2) {}
+    }
+
+    // Load selections from localStorage first so UI appears fast
+    var selJson = null;
+    try {
+      var storedSel = await window.storage.get(SELECTIONS_KEY, false);
+      if (storedSel && storedSel.value) selJson = storedSel.value;
+    } catch (e) {}
+    if (!selJson) {
+      try { selJson = localStorage.getItem(SELECTIONS_KEY); } catch (e) {}
+    }
+    try { pgSelections = selJson ? JSON.parse(selJson) : {}; } catch (e) { pgSelections = {}; }
+
+    // Load notes
+    try { var nj = localStorage.getItem(NOTES_KEY); pgNotes = nj ? JSON.parse(nj) : {}; } catch(e) { pgNotes = {}; }
+
+    // Load notification settings
+    try { var nfs = localStorage.getItem(NOTIFS_KEY); pgNotifSettings = nfs ? JSON.parse(nfs) : {}; } catch(e) { pgNotifSettings = {}; }
+
+    render();
+
+    // Schedule any pending notifications
+    if ('Notification' in window && Notification.permission === 'granted') {
+      scheduleAllNotifications();
+    }
+
+    // Then connect Firebase in the background — remote state will update DOM surgically
+    initFirebase();
+  }
+
+  init();
+
+  function updateOptionRow(rowId) {
+    var rows = document.querySelectorAll(".pg-option-row[data-row-id='" + rowId + "']");
+    rows.forEach(function(rowEl) {
+      var idx = parseInt(rowEl.dataset.itemIdx, 10);
+      var isPicked = pgSelections[rowId] === idx;
+      if (isPicked) rowEl.classList.add("pg-picked"); else rowEl.classList.remove("pg-picked");
+      var cb = rowEl.querySelector(".pg-check");
+      if (cb) cb.checked = isPicked;
+      var nameSpan = rowEl.querySelector(".pg-item-name");
+      if (nameSpan) nameSpan.style.fontWeight = isPicked ? "700" : "600";
+    });
+  }
+
+  function updateRoutePreview(day) {
+    var existing = document.getElementById("pg-route-preview");
+    if (!existing) return;
+    var fresh = renderRoutePreview(resolveRoute(day));
+    if (fresh) {
+      fresh.id = "pg-route-preview";
+      existing.parentNode.replaceChild(fresh, existing);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI FEATURES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var ICON_AI = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke-linejoin="round"/></svg>';
+
+  // Build shared trip context string injected into every AI call
+  function buildTripContext(dayNum) {
+    var day = pgData.days.filter(function(d) { return d.num === dayNum; })[0];
+    var picks = [];
+    if (day) {
+      day.rows.forEach(function(row) {
+        if (!row.id || !row.items) return;
+        var selIdx = pgSelections[row.id];
+        if (selIdx == null) return;
+        var item = row.items[selIdx];
+        if (item) picks.push(row.label + ': ' + item.name);
+      });
+    }
+    return [
+      'Trip: Puglia, Italy. June 26 - July 4, 2026.',
+      'Base: LucAsia, Monopoli (one bedroom house, 2 adults).',
+      'Preferences: food & wine lovers (especially oil, cheese, local wine), balance of sightseeing and beach time.',
+      day ? 'Current day: Day ' + day.num + ' (' + day.date + ') — ' + day.title + '.' : '',
+      day && day.driveTime ? 'Driving: ' + day.driveTime + '.' : '',
+      picks.length ? 'Current picks for this day: ' + picks.join('; ') + '.' : '',
+    ].filter(Boolean).join('\n');
+  }
+
+  // Shared AI panel renderer — slide-up sheet
+  function showAIPanel(opts) {
+    // opts: { title, subtitle, onLoad: async fn that returns HTML string }
+    var existing = document.getElementById('pg-ai-overlay');
+    if (existing) existing.remove();
+
+    var overlay = el('div', { class: 'pg-ai-overlay', id: 'pg-ai-overlay' });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+    var panel = el('div', { class: 'pg-ai-panel' });
+
+    var panelHdr = el('div', { class: 'pg-ai-panel-header' });
+    var titleCol = el('div', {});
+    titleCol.appendChild(el('div', { style: 'font-weight: 800; font-size: 17px;', text: opts.title }));
+    if (opts.subtitle) titleCol.appendChild(el('div', { style: 'font-size: 12.5px; color: var(--ink-faint); margin-top: 2px;', text: opts.subtitle }));
+    panelHdr.appendChild(titleCol);
+    var closeBtn = el('button', { style: 'background: var(--surface-sunken); border: none; border-radius: 999px; width: 32px; height: 32px; cursor: pointer; font-size: 18px; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;', text: '\u00D7' });
+    closeBtn.addEventListener('click', function() { overlay.remove(); });
+    panelHdr.appendChild(closeBtn);
+    panel.appendChild(panelHdr);
+
+    var body = el('div', { class: 'pg-ai-panel-body' });
+    var loadingEl = el('div', { class: 'pg-ai-loading' });
+    loadingEl.innerHTML = '<span></span><span></span><span></span>';
+    body.appendChild(loadingEl);
+    panel.appendChild(body);
+    overlay.appendChild(panel);
+    document.querySelector('.pg-root').appendChild(overlay);
+
+    // Run the AI call
+    opts.onLoad().then(function(html) {
+      loadingEl.remove();
+      body.innerHTML = html;
+    }).catch(function(err) {
+      loadingEl.remove();
+      body.innerHTML = '<p style="color:var(--danger);">Something went wrong: ' + err.message + '</p>';
+    });
+  }
+
+  // Call the Anthropic API with optional web search
+  async function callAI(systemPrompt, userPrompt, useWebSearch) {
+    var tools = useWebSearch ? [{ type: 'web_search_20250305', name: 'web_search' }] : undefined;
+    var body = {
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    };
+    if (tools) body.tools = tools;
+
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': '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',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error('API error ' + resp.status);
+    var data = await resp.json();
+    return data.content
+      .filter(function(b) { return b.type === 'text'; })
+      .map(function(b) { return b.text; })
+      .join('\n');
+  }
+
+  // Convert markdown-ish AI text to safe HTML
+  function aiTextToHtml(text) {
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, function(m) { return '<ul>' + m + '</ul>'; })
+      .replace(/\n\n+/g, '</p><p>')
+      .replace(/^(?!<[hul])(.+)$/gm, function(m) {
+        if (m.trim() && !m.startsWith('<')) return '<p>' + m + '</p>';
+        return m;
+      })
+      .replace(/<p><\/p>/g, '');
+  }
+
+  // ─── Feature 1: Smart swap — Find alternatives ───────────────────────────
+  function showAlternatives(day, row, currentItem) {
+    var ctx = buildTripContext(day.num);
+    var otherPicks = [];
+    day.rows.forEach(function(r) {
+      if (!r.id || !r.items || r.id === row.id) return;
+      var si = pgSelections[r.id];
+      if (si != null && r.items[si]) otherPicks.push(r.label + ': ' + r.items[si].name);
+    });
+
+    showAIPanel({
+      title: 'Find alternatives',
+      subtitle: row.label + ' \u2014 Day ' + day.num + ', ' + day.date,
+      onLoad: async function() {
+        var text = await callAI(
+          'You are an expert local guide for Puglia, Italy. Give concise, specific, actionable suggestions. Format your response in clean markdown with **bold** for place names.',
+          ctx + '\n\n' +
+          'The user wants alternatives to: "' + currentItem.name + '" (' + row.label + ').\n' +
+          'Reason could be: fully booked, already tried it, change of mood.\n' +
+          (otherPicks.length ? 'Other picks for this day: ' + otherPicks.join('; ') + '.\n' : '') +
+          '\nSuggest 3 specific alternatives in the same area (' + day.title + '). For each give:\n' +
+          '- Name and one-sentence why it fits\n- What to order / what specifically to do there\n- One practical tip (opening hours, booking, parking)\n\nBe direct and confident. No generic filler.'
+        );
+        return aiTextToHtml(text);
+      }
+    });
+  }
+
+  // ─── Feature 2: Day briefing with live weather ───────────────────────────
+  function showDayBriefing(day) {
+    var ctx = buildTripContext(day.num);
+    var allPicks = [];
+    day.rows.forEach(function(row) {
+      if (!row.id || !row.items) return;
+      var si = pgSelections[row.id];
+      if (si != null && row.items[si]) allPicks.push(row.label + ': ' + row.items[si].name);
+    });
+
+    showAIPanel({
+      title: 'Day briefing',
+      subtitle: day.date + ' \u2014 ' + day.title,
+      onLoad: async function() {
+        var text = await callAI(
+          'You are a sharp, well-informed travel assistant for a couple visiting Puglia in late June / early July 2026. Use web search to get the weather forecast. Be specific, practical, and brief. Format in markdown.',
+          ctx + '\n\n' +
+          (allPicks.length ? 'Confirmed picks today: ' + allPicks.join('; ') + '.\n\n' : '') +
+          'Give a day briefing covering:\n' +
+          '1. **Weather** \u2014 search for the forecast for ' + day.title.split('\u2014')[0].trim() + ', Puglia around ' + day.date + '. Temperature, UV index, any risk of afternoon storms.\n' +
+          '2. **Crowd & timing tips** \u2014 is this a weekend? peak tourist period considerations for the specific places they\'re visiting.\n' +
+          '3. **Top 3 priorities for today** \u2014 given their picks and the day\'s shape, what absolutely cannot be missed or rushed.\n' +
+          '4. **One thing most tourists miss** at one of today\'s destinations.\n' +
+          '5. **Practical heads-up** \u2014 parking, cash needed, anything to sort before leaving the hotel.\n\n' +
+          'Keep each section tight. 3-4 sentences max per section.',
+          true // enable web search for weather
+        );
+        return aiTextToHtml(text);
+      }
+    });
+  }
+
+  // ─── Feature 3: Ask AI about a specific place ────────────────────────────
+  function askAboutPlace(day, row, item) {
+    var ctx = buildTripContext(day.num);
+
+    showAIPanel({
+      title: item.name,
+      subtitle: 'AI insights \u2014 ' + row.label + ', Day ' + day.num,
+      onLoad: async function() {
+        var text = await callAI(
+          'You are a knowledgeable local guide for Puglia, Italy. Give specific, insider-level advice. Format in markdown with **bold** for key terms.',
+          ctx + '\n\n' +
+          'Tell us what we need to know about: **' + item.name + '** (' + row.label + ', ' + day.date + ').\n\n' +
+          'Cover:\n' +
+          '1. **What to order / what specifically to do** \u2014 the one or two things that make this place worth visiting\n' +
+          '2. **Insider tip** \u2014 something a local would tell you that isn\'t on TripAdvisor\n' +
+          '3. **Best time to go / how long to spend**\n' +
+          '4. **What to skip or avoid**\n' +
+          '5. **What to pair it with** \u2014 how it fits into the rest of the day\n\n' +
+          'Be specific and direct. No generic tourism language.',
+          false
+        );
+        return aiTextToHtml(text);
+      }
+    });
+  }
+
+  // ─── Feature 4: Re-plan a day ────────────────────────────────────────────
+  function replanDay(day) {
+    var ctx = buildTripContext(day.num);
+    var otherDayPicks = {};
+    pgData.days.forEach(function(d) {
+      if (d.num === day.num) return;
+      d.rows.forEach(function(row) {
+        if (!row.id || !row.items) return;
+        var si = pgSelections[row.id];
+        if (si != null && row.items[si]) {
+          if (!otherDayPicks[d.num]) otherDayPicks[d.num] = [];
+          otherDayPicks[d.num].push(row.items[si].name);
+        }
+      });
+    });
+    var otherPicksStr = Object.keys(otherDayPicks).map(function(dn) {
+      return 'D' + dn + ': ' + otherDayPicks[dn].join(', ');
+    }).join('; ');
+
+    showAIPanel({
+      title: 'Re-plan Day ' + day.num,
+      subtitle: 'Alternative options for ' + day.date,
+      onLoad: async function() {
+        var text = await callAI(
+          'You are a Puglia travel expert helping re-plan a day. Be specific with real place names and practical details. Format clearly in markdown.',
+          ctx + '\n\n' +
+          'The couple wants to re-plan Day ' + day.num + ' (' + day.title + ').\n' +
+          'Original plan: ' + day.title + '.\n' +
+          (otherPicksStr ? 'Already doing on other days: ' + otherPicksStr + '. Do not repeat these.\n' : '') +
+          '\nPropose 2 alternative day plans:\n\n' +
+          '**Option A: Relaxed version** \u2014 lighter pace, less driving, more downtime\n' +
+          '**Option B: Hidden gems** \u2014 off the tourist trail, things most visitors miss\n\n' +
+          'For each option give:\n' +
+          '- Morning / afternoon / evening breakdown with specific place names\n' +
+          '- 1-2 specific restaurant suggestions with what to order\n' +
+          '- Driving time estimate\n' +
+          '- Why it works as an alternative to the original\n\n' +
+          'Be concrete. Real names, real dishes, real advice.',
+          false
+        );
+        return aiTextToHtml(text);
+      }
+    });
+  }
+
+  // ─── Feature 5: Help us decide (dinner decider) ──────────────────────────
+  function helpDecide(day, row) {
+    var ctx = buildTripContext(day.num);
+    var options = row.items.map(function(it, i) {
+      return (i + 1) + '. ' + it.name + (it.note ? ' (' + it.note + ')' : '') + (it.rating ? ' \u2605' + it.rating : '');
+    }).join('\n');
+    var currentPick = pgSelections[row.id] != null ? row.items[pgSelections[row.id]] : null;
+
+    // Build a quick decision panel with 2 questions then call AI
+    var existing = document.getElementById('pg-ai-overlay');
+    if (existing) existing.remove();
+
+    var overlay = el('div', { class: 'pg-ai-overlay', id: 'pg-ai-overlay' });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    var panel = el('div', { class: 'pg-ai-panel' });
+
+    var panelHdr = el('div', { class: 'pg-ai-panel-header' });
+    panelHdr.appendChild(el('div', { style: 'font-weight: 800; font-size: 17px;', text: 'Help us decide' }));
+    var closeBtn = el('button', { style: 'background: var(--surface-sunken); border: none; border-radius: 999px; width: 32px; height: 32px; cursor: pointer; font-size: 18px; color: var(--ink-soft);', text: '\u00D7' });
+    closeBtn.addEventListener('click', function() { overlay.remove(); });
+    panelHdr.appendChild(closeBtn);
+    panel.appendChild(panelHdr);
+
+    var body = el('div', { class: 'pg-ai-panel-body' });
+    body.appendChild(el('p', { style: 'margin: 0 0 18px; color: var(--ink-soft); font-size: 14px;', text: 'Answer two quick questions and we\'ll make the call for you.' }));
+
+    // Q1: Mood
+    var q1 = el('div', { style: 'margin-bottom: 16px;' });
+    q1.appendChild(el('div', { style: 'font-weight: 700; font-size: 14px; margin-bottom: 8px;', text: 'How are you feeling right now?' }));
+    var moods = ['Tired \u2014 keep it easy', 'Hungry & excited', 'Want something special', 'Just want good local food'];
+    var selectedMood = moods[1];
+    var moodBtns = el('div', { style: 'display: flex; flex-wrap: wrap; gap: 7px;' });
+    moods.forEach(function(mood) {
+      var btn = el('button', {
+        style: 'font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; transition: all 0.15s;',
+        text: mood
+      });
+      if (mood === selectedMood) { btn.style.background = 'var(--accent)'; btn.style.color = 'white'; btn.style.borderColor = 'var(--accent)'; }
+      btn.addEventListener('click', function() {
+        selectedMood = mood;
+        moodBtns.querySelectorAll('button').forEach(function(b) { b.style.background = 'var(--surface)'; b.style.color = 'var(--ink)'; b.style.borderColor = 'var(--line)'; });
+        btn.style.background = 'var(--accent)'; btn.style.color = 'white'; btn.style.borderColor = 'var(--accent)';
+      });
+      moodBtns.appendChild(btn);
+    });
+    q1.appendChild(moodBtns);
+    body.appendChild(q1);
+
+    // Q2: Budget
+    var q2 = el('div', { style: 'margin-bottom: 20px;' });
+    q2.appendChild(el('div', { style: 'font-weight: 700; font-size: 14px; margin-bottom: 8px;', text: 'Budget for this meal?' }));
+    var budgets = ['Keep it cheap', 'Normal (\u20AC15\u201325pp)', 'Treat (\u20AC30\u201345pp)', 'Splurge'];
+    var selectedBudget = budgets[1];
+    var budgetBtns = el('div', { style: 'display: flex; flex-wrap: wrap; gap: 7px;' });
+    budgets.forEach(function(budget) {
+      var btn = el('button', {
+        style: 'font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; transition: all 0.15s;',
+        text: budget
+      });
+      if (budget === selectedBudget) { btn.style.background = 'var(--accent)'; btn.style.color = 'white'; btn.style.borderColor = 'var(--accent)'; }
+      btn.addEventListener('click', function() {
+        selectedBudget = budget;
+        budgetBtns.querySelectorAll('button').forEach(function(b) { b.style.background = 'var(--surface)'; b.style.color = 'var(--ink)'; b.style.borderColor = 'var(--line)'; });
+        btn.style.background = 'var(--accent)'; btn.style.color = 'white'; btn.style.borderColor = 'var(--accent)';
+      });
+      budgetBtns.appendChild(btn);
+    });
+    q2.appendChild(budgetBtns);
+    body.appendChild(q2);
+
+    // Decide button
+    var decideBtn = el('button', {
+      style: 'width: 100%; padding: 14px; font-size: 15px; font-weight: 700; background: var(--ink); color: white; border: none; border-radius: 12px; cursor: pointer;',
+      html: ICON_AI + '&nbsp; Make the decision'
+    });
+    var resultEl = el('div', { style: 'margin-top: 20px;' });
+    decideBtn.addEventListener('click', function() {
+      decideBtn.disabled = true;
+      decideBtn.innerHTML = '<span style="opacity:0.6">Thinking\u2026</span>';
+      var loadingEl = el('div', { class: 'pg-ai-loading' });
+      loadingEl.innerHTML = '<span></span><span></span><span></span>';
+      resultEl.innerHTML = '';
+      resultEl.appendChild(loadingEl);
+
+      callAI(
+        'You are a decisive Puglia food expert. Make ONE clear recommendation. Be confident, not wishy-washy. Format: lead with the name in bold, then one paragraph of why, then what to order.',
+        ctx + '\n\n' +
+        'Help this couple choose for ' + row.label + ' on Day ' + day.num + ' (' + day.date + ').\n\n' +
+        'Options:\n' + options + '\n\n' +
+        'Their mood: ' + selectedMood + '\n' +
+        'Budget: ' + selectedBudget + '\n' +
+        (currentPick ? 'They currently have "' + currentPick.name + '" selected.\n' : '') +
+        '\nGive ONE recommendation only. Tell them which one to pick and exactly what to order. One confident answer, not a comparison.',
+        false
+      ).then(function(text) {
+        loadingEl.remove();
+        resultEl.innerHTML = '<div style="background:var(--accent-tint);border-radius:14px;padding:16px 18px;">' + aiTextToHtml(text) + '</div>';
+        decideBtn.style.display = 'none';
+      }).catch(function(err) {
+        loadingEl.remove();
+        resultEl.innerHTML = '<p style="color:var(--danger)">Error: ' + err.message + '</p>';
+        decideBtn.disabled = false;
+        decideBtn.innerHTML = ICON_AI + '&nbsp; Try again';
+      });
+    });
+    body.appendChild(decideBtn);
+    body.appendChild(resultEl);
+    panel.appendChild(body);
+    overlay.appendChild(panel);
+    document.querySelector('.pg-root').appendChild(overlay);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // END AI FEATURES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FEATURE: Collapsible rows
+  // ═══════════════════════════════════════════════════════════════════════════
+  function toggleRowCollapse(rowId, contentEl, chevronEl) {
+    _collapsedRows[rowId] = !_collapsedRows[rowId];
+    if (_collapsedRows[rowId]) {
+      contentEl.style.maxHeight = '0';
+      contentEl.classList.add('pg-collapsed');
+      chevronEl.classList.remove('pg-open');
+      chevronEl.classList.add('pg-shut');
+    } else {
+      contentEl.style.maxHeight = contentEl.scrollHeight + 'px';
+      contentEl.classList.remove('pg-collapsed');
+      chevronEl.classList.remove('pg-shut');
+      chevronEl.classList.add('pg-open');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FEATURE: Day notes (per-day freeform text, synced via Firebase)
+  // ═══════════════════════════════════════════════════════════════════════════
+  function saveNote(dayNum, text) {
+    pgNotes[dayNum] = text;
+    try { localStorage.setItem(NOTES_KEY, JSON.stringify(pgNotes)); } catch(e) {}
+    if (_fbRef) {
+      _fbDatabase.ref('/puglia-trip/notes/' + dayNum).set(text).catch(function(){});
+    }
+  }
+
+  function renderDayNotes(dayNum) {
+    var wrap = el('div', { style: 'padding: 18px 0 6px; border-bottom: 1px solid var(--line);' });
+    var hdr = el('div', { style: 'display: flex; align-items: center; gap: 7px; margin-bottom: 10px;' });
+    hdr.appendChild(el('span', { style: 'display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:var(--surface-sunken);border-radius:8px;flex-shrink:0;', html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA0AA" stroke-width="2.2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
+    hdr.appendChild(el('span', { style: 'font-weight:700;font-size:13px;letter-spacing:0.01em;color:var(--ink-soft);text-transform:uppercase;', text: 'Notes' }));
+    var savedEl = el('span', { class: 'pg-notes-saved', text: '\u2713 Saved', style: 'margin-left: auto;' });
+    hdr.appendChild(savedEl);
+    wrap.appendChild(hdr);
+    var ta = document.createElement('textarea');
+    ta.className = 'pg-notes-area';
+    ta.dataset.day = dayNum;
+    ta.placeholder = 'Jot anything here — tips, memories, ideas\u2026 syncs to both phones via Firebase.';
+    ta.value = pgNotes[dayNum] || '';
+    var saveTimer = null;
+    ta.addEventListener('input', function() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function() {
+        saveNote(dayNum, ta.value);
+        savedEl.classList.add('show');
+        setTimeout(function() { savedEl.classList.remove('show'); }, 2000);
+      }, 800);
+    });
+    wrap.appendChild(ta);
+    return wrap;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FEATURE: Flight tracker (AviationStack)
+  // ═══════════════════════════════════════════════════════════════════════════
+  var _flightCache = {};
+
+  async function fetchFlight(flightNum) {
+    if (!AVIATIONSTACK_KEY) return null;
+    if (_flightCache[flightNum]) return _flightCache[flightNum];
+    try {
+      var url = 'https://api.aviationstack.com/v1/flights?access_key=' + AVIATIONSTACK_KEY +
+                '&flight_iata=' + encodeURIComponent(flightNum) + '&limit=1';
+      var resp = await fetch(url);
+      var data = await resp.json();
+      var flight = data.data && data.data[0] ? data.data[0] : null;
+      if (flight) {
+        _flightCache[flightNum] = flight;
+        setTimeout(function() { delete _flightCache[flightNum]; }, 60000); // refresh every min
+      }
+      return flight;
+    } catch(e) { return null; }
+  }
+
+  function flightStatusChip(status) {
+    var map = {
+      scheduled: { cls: 'unknown', label: 'Scheduled' },
+      active:    { cls: 'boarding', label: 'In air' },
+      landed:    { cls: 'landed', label: 'Landed' },
+      cancelled: { cls: 'delayed', label: 'Cancelled' },
+      incident:  { cls: 'delayed', label: 'Incident' },
+      diverted:  { cls: 'delayed', label: 'Diverted' }
+    };
+    var s = map[status] || { cls: 'unknown', label: status || 'Unknown' };
+    return '<span class="pg-flight-status ' + s.cls + '">' + s.label + '</span>';
+  }
+
+  function renderFlightTracker(it, row) {
+    if (!it.flightNum) return;
+    var trackBtn = el('button', { class: 'pg-track-btn', text: 'Track live' });
+    var liveEl = el('div', { class: 'pg-flight-live', style: 'display:none;' });
+
+    trackBtn.addEventListener('click', function() {
+      if (liveEl.style.display !== 'none') { liveEl.style.display = 'none'; trackBtn.textContent = 'Track live'; return; }
+      if (!AVIATIONSTACK_KEY) {
+        liveEl.style.display = 'block';
+        liveEl.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12.5px;">Add your AviationStack API key to enable live tracking.<br><span style="opacity:0.6">Set AVIATIONSTACK_KEY in the HTML file.</span></div>';
+        return;
+      }
+      trackBtn.textContent = 'Loading\u2026';
+      trackBtn.disabled = true;
+      liveEl.style.display = 'block';
+      liveEl.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12px;">Fetching\u2026</div>';
+
+      fetchFlight(it.flightNum).then(function(f) {
+        trackBtn.textContent = 'Refresh';
+        trackBtn.disabled = false;
+        if (!f) {
+          liveEl.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12.5px;">No live data yet \u2014 available closer to departure.</div>';
+          return;
+        }
+        var dep = f.departure || {};
+        var arr = f.arrival || {};
+        var depActual = dep.actual || dep.estimated || dep.scheduled || '';
+        var arrActual = arr.actual || arr.estimated || arr.scheduled || '';
+        var fmt = function(iso) {
+          if (!iso) return '\u2014';
+          try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e) { return iso.slice(11,16); }
+        };
+        var delay = dep.delay ? (dep.delay > 0 ? '+' + dep.delay + 'm delay' : 'On time') : '';
+        liveEl.innerHTML =
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">' +
+          flightStatusChip(f.flight_status) +
+          (delay ? '<span style="font-size:12px;color:rgba(255,255,255,0.6);">' + delay + '</span>' : '') +
+          '</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+          '<div><div style="font-size:10.5px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Departs</div>' +
+          '<div style="font-size:14px;font-weight:700;color:white;">' + fmt(depActual) + '</div>' +
+          (dep.terminal ? '<div style="font-size:11.5px;color:rgba(255,255,255,0.5);">Terminal ' + dep.terminal + (dep.gate ? ' \u00B7 Gate ' + dep.gate : '') + '</div>' : '') +
+          '</div>' +
+          '<div><div style="font-size:10.5px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Arrives</div>' +
+          '<div style="font-size:14px;font-weight:700;color:white;">' + fmt(arrActual) + '</div>' +
+          (arr.terminal ? '<div style="font-size:11.5px;color:rgba(255,255,255,0.5);">Terminal ' + arr.terminal + (arr.gate ? ' \u00B7 Gate ' + arr.gate : '') + '</div>' : '') +
+          '</div></div>';
+      }).catch(function() {
+        trackBtn.textContent = 'Retry';
+        trackBtn.disabled = false;
+        liveEl.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12.5px;">Could not reach flight data service.</div>';
+      });
+    });
+    row.appendChild(trackBtn);
+    return liveEl;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FEATURE: "We're here" GPS button
+  // ═══════════════════════════════════════════════════════════════════════════
+  function renderGPSButton(day) {
+    var route = resolveRoute(day);
+    if (!route || route.length < 2) return null;
+    // Find next unvisited stop after current time (simplified: find stop 2 onwards)
+    var nextStops = route.filter(function(s, i) { return i > 0 && s.lat; });
+    if (!nextStops.length) return null;
+
+    var btn = el('button', { class: 'pg-gps-btn' });
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z" stroke-linejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>&nbsp;Navigate to next stop';
+
+    btn.addEventListener('click', function() {
+      btn.disabled = true;
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3" stroke-linecap="round"/></svg>&nbsp;Getting location\u2026';
+      if (!navigator.geolocation) {
+        showToast('GPS not available on this device');
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z" stroke-linejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>&nbsp;Navigate to next stop';
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        // Pick the closest unvisited stop
+        var myLat = pos.coords.latitude, myLng = pos.coords.longitude;
+        var closest = nextStops.reduce(function(best, s) {
+          var d = Math.pow(s.lat - myLat, 2) + Math.pow(s.lng - myLng, 2);
+          return (!best || d < best.d) ? { s: s, d: d } : best;
+        }, null);
+        if (closest) {
+          var dest = closest.s.lat + ',' + closest.s.lng;
+          var origin = myLat + ',' + myLng;
+          window.open('https://www.google.com/maps/dir/?api=1&origin=' + origin + '&destination=' + dest + '&travelmode=driving', '_blank');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z" stroke-linejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>&nbsp;Navigate to next stop';
+      }, function() {
+        showToast('Could not get your location');
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z" stroke-linejoin="round"/><circle cx="12" cy="9" r="2.5"/></svg>&nbsp;Navigate to next stop';
+      });
+    });
+    return btn;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FEATURE: Phrasebook
+  // ═══════════════════════════════════════════════════════════════════════════
+  var PHRASES = [
+    { cat: 'At the restaurant' },
+    { it: 'Un tavolo per due, per favore.', en: 'A table for two, please.', tip: 'Always add "per favore" — it goes a long way.' },
+    { it: 'Cosa consiglia?', en: 'What do you recommend?', tip: 'Opens the conversation with the waiter — often leads to the best dishes.' },
+    { it: 'Il vino della casa, per favore.', en: 'The house wine, please.', tip: 'In Puglia the house wine is almost always excellent and very cheap.' },
+    { it: 'Vorrei le orecchiette al rag\u00f9.', en: 'I would like orecchiette with rag\u00f9.', tip: 'The signature pasta of Puglia — say it with confidence.' },
+    { it: 'Senza glutine?', en: 'Gluten-free?', tip: 'Only if you need it — restaurants take this seriously.' },
+    { it: 'Il conto, per favore.', en: 'The bill, please.' },
+    { it: 'Possiamo pagare separatamente?', en: 'Can we pay separately?' },
+    { it: 'Era squisito!', en: 'It was delicious!', tip: 'Say this on the way out — you\'ll make someone\'s day.' },
+    { cat: 'Ordering food' },
+    { it: 'Crudo di mare, per favore.', en: 'Raw seafood, please.', tip: 'At the Bari harbour — point at what you want, say this.' },
+    { it: 'Un cornetto e un caff\u00e8.', en: 'A croissant and a coffee.', tip: 'The classic Italian breakfast — stand at the bar, it\'s cheaper.' },
+    { it: 'Un pasticciotto, per favore.', en: 'A pasticciotto, please.', tip: 'The Lecce pastry — custard-filled, eaten warm in the morning.' },
+    { it: 'Vorrei assaggiare il vino rosato.', en: 'I\'d like to try the ros\u00e9 wine.', tip: 'Use at wineries — Primitivo and Negroamaro ros\u00e9 are outstanding.' },
+    { it: 'Acqua frizzante o naturale?', en: 'Sparkling or still water?', tip: 'They will ask you this — frizzante = sparkling, naturale = still.' },
+    { cat: 'Getting around' },
+    { it: 'Dov\u2019\u00e8 il parcheggio?', en: 'Where is the parking?' },
+    { it: 'Quanto tempo ci vuole?', en: 'How long does it take?' },
+    { it: 'Siamo diretti a Monopoli.', en: 'We are heading to Monopoli.' },
+    { it: 'C\u2019\u00e8 traffico?', en: 'Is there traffic?' },
+    { cat: 'Shopping & sightseeing' },
+    { it: 'Quanto costa?', en: 'How much does it cost?' },
+    { it: 'Posso fare una foto?', en: 'Can I take a photo?', tip: 'Always ask inside churches and at the orecchiette nonnas.' },
+    { it: '\u00c8 aperto adesso?', en: 'Is it open now?', tip: 'Essential during la pausa (1\u20135pm) when everything closes.' },
+    { it: 'A che ora chiude?', en: 'What time does it close?' },
+    { cat: 'Emergencies' },
+    { it: 'Aiuto!', en: 'Help!' },
+    { it: 'Chiamate un medico.', en: 'Call a doctor.' },
+    { it: 'Dov\u2019\u00e8 la farmacia?', en: 'Where is the pharmacy?' },
+    { it: 'Ho bisogno di assistenza.', en: 'I need assistance.' }
+  ];
+
+  function showPhrasebook() {
+    showAIPanel({
+      title: 'Italian phrasebook',
+      subtitle: 'Essential phrases for Puglia',
+      onLoad: async function() {
+        var html = '';
+        PHRASES.forEach(function(p) {
+          if (p.cat) {
+            html += '<div class="pg-phrase-cat">' + p.cat + '</div>';
+          } else {
+            html += '<div class="pg-phrase-row">' +
+              '<div class="pg-phrase-it">' + p.it + '</div>' +
+              '<div class="pg-phrase-en">' + p.en + '</div>' +
+              (p.tip ? '<div class="pg-phrase-tip">' + p.tip + '</div>' : '') +
+              '</div>';
+          }
+        });
+        return html;
+      }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FEATURE: Notifications
+  // ═══════════════════════════════════════════════════════════════════════════
+  var NOTIFICATIONS = [
+    { id: 'n_d1_dep1',  day: 1,  time: '07:00', label: 'Day 1 — First flight in 50 min',  body: 'W4 3040 departs Chișinău at 07:50. Head to the gate now.' },
+    { id: 'n_d1_dep2',  day: 1,  time: '12:45', label: 'Day 1 — Bucharest boarding soon',   body: 'W4 3167 departs OTP at 13:30 for Bari. Head to the gate.' },
+    { id: 'n_d1_car',    day: 1,  time: '14:45', label: 'Day 1 \u2014 Pick up the car',    body: 'Head to Centauro Rent a Car at Bari Airport. Pickup at 15:00.' },
+    { id: 'n_daily',     day: -1, time: '08:00', label: 'Daily \u2014 Morning check-in',   body: 'Good morning! Check today\'s plan and picks in the Puglia planner.' },
+    { id: 'n_d5_zoo',    day: 5,  time: '09:00', label: 'Day 5 \u2014 Head to Zoosafari',  body: 'Leave now to hit Zoosafari at opening (9:30am). Animals most active in the cool morning.' },
+    { id: 'n_d5_for',    day: 5,  time: '18:30', label: 'Day 5 \u2014 Head to Cisternino', body: 'Leave for Al Vecchio Fornello now \u2014 it fills up fast and they stop taking orders early.' },
+    { id: 'n_d6_otr',    day: 6,  time: '14:15', label: 'Day 6 \u2014 Leave for Otranto',  body: 'Head out now to beat la pausa. Arrive ~5pm when the old town reopens.' },
+    { id: 'n_d9_cout',   day: 9,  time: '09:00', label: 'Day 9 \u2014 Check out in 1h',    body: 'Check out is at 10:00. Start packing LucAsia.' },
+    { id: 'n_d9_car',    day: 9,  time: '12:45', label: 'Day 9 \u2014 Leave for airport',   body: 'Leave for Bari Airport now. Drop car by 13:30 to make the 14:55 flight comfortably.' },
+    { id: 'n_d9_board',  day: 9,  time: '13:25', label: 'Day 9 \u2014 Board in 90 min',    body: 'Head through security now. Flight W4 3168 departs 14:55.' }
+  ];
+
+  var _scheduledNotifs = {};
+
+  function tripDateForDay(dayNum) {
+    // Day 1 = June 26, 2026
+    var base = new Date(2026, 5, 25); // June 25 (months 0-indexed)
+    base.setDate(base.getDate() + dayNum);
+    return base;
+  }
+
+  function scheduleNotification(notif) {
+    if (_scheduledNotifs[notif.id]) clearTimeout(_scheduledNotifs[notif.id]);
+    if (!pgNotifSettings[notif.id]) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    var days = notif.day === -1
+      ? [1,2,3,4,5,6,7,8,9]
+      : [notif.day];
+
+    days.forEach(function(d) {
+      var date = tripDateForDay(d);
+      var parts = notif.time.split(':');
+      date.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+      var ms = date.getTime() - Date.now();
+      if (ms < 0 || ms > 8 * 24 * 60 * 60 * 1000) return; // only within 8 days
+      var key = notif.id + '_d' + d;
+      _scheduledNotifs[key] = setTimeout(function() {
+        new Notification(notif.label, {
+          body: notif.body,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%2315161A"/><text y="68" x="50" text-anchor="middle" font-size="56">%F0%9F%8C%8A</text></svg>',
+          tag: key,
+          requireInteraction: true
+        });
+      }, ms);
+    });
+  }
+
+  function scheduleAllNotifications() {
+    NOTIFICATIONS.forEach(function(n) { scheduleNotification(n); });
+  }
+
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) return 'unsupported';
+    if (Notification.permission === 'granted') return 'granted';
+    if (Notification.permission === 'denied') return 'denied';
+    return await Notification.requestPermission();
+  }
+
+  function showNotificationsPanel() {
+    var existing = document.getElementById('pg-ai-overlay');
+    if (existing) existing.remove();
+    var overlay = el('div', { class: 'pg-ai-overlay', id: 'pg-ai-overlay' });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    var panel = el('div', { class: 'pg-ai-panel' });
+    var hdr = el('div', { class: 'pg-ai-panel-header' });
+    hdr.appendChild(el('div', {}, [
+      el('div', { style: 'font-weight:800;font-size:17px;', text: 'Notifications' }),
+      el('div', { style: 'font-size:12.5px;color:var(--ink-faint);margin-top:2px;', text: 'Timely alerts for your trip' })
+    ]));
+    var closeBtn = el('button', { style: 'background:var(--surface-sunken);border:none;border-radius:999px;width:32px;height:32px;cursor:pointer;font-size:18px;color:var(--ink-soft);', text: '\u00D7' });
+    closeBtn.onclick = function() { overlay.remove(); };
+    hdr.appendChild(closeBtn);
+    panel.appendChild(hdr);
+    var body = el('div', { class: 'pg-ai-panel-body' });
+
+    // Permission status
+    var permStatus = ('Notification' in window) ? Notification.permission : 'unsupported';
+    var permBanner = el('div', { style: 'padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 13.5px; font-weight: 600;' });
+    if (permStatus === 'granted') {
+      permBanner.style.background = 'var(--success-tint)';
+      permBanner.style.color = 'var(--success)';
+      permBanner.textContent = '\u2713 Notifications enabled';
+    } else if (permStatus === 'denied') {
+      permBanner.style.background = 'var(--danger-tint)';
+      permBanner.style.color = 'var(--danger)';
+      permBanner.textContent = '\u26A0 Notifications blocked \u2014 enable in your browser/phone settings';
+    } else if (permStatus === 'unsupported') {
+      permBanner.style.background = 'var(--surface-sunken)';
+      permBanner.style.color = 'var(--ink-soft)';
+      permBanner.textContent = 'Notifications not supported in this browser';
+    } else {
+      permBanner.style.background = 'var(--warn-tint)';
+      permBanner.style.color = 'var(--warn)';
+      var enableBtn = el('button', { style: 'font-weight:700;font-size:13px;background:var(--warn);color:white;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;margin-top:6px;display:block;', text: 'Enable notifications' });
+      enableBtn.onclick = function() {
+        requestNotificationPermission().then(function(result) {
+          if (result === 'granted') {
+            scheduleAllNotifications();
+            showNotificationsPanel(); // re-open to show granted state
+          }
+        });
+      };
+      permBanner.innerHTML = '<div>Allow notifications to get trip reminders.</div>';
+      permBanner.appendChild(enableBtn);
+    }
+    body.appendChild(permBanner);
+
+    NOTIFICATIONS.forEach(function(n) {
+      var row = el('div', { class: 'pg-notif-row' });
+      var info = el('div', {});
+      info.appendChild(el('div', { style: 'font-weight:700;font-size:14px;color:var(--ink);', text: n.label }));
+      info.appendChild(el('div', { style: 'font-size:12.5px;color:var(--ink-soft);margin-top:2px;', text: n.time + (n.day > 0 ? ' \u00B7 ' + tripDateForDay(n.day).toLocaleDateString('en-GB', {day:'numeric',month:'short'}) : ' \u00B7 Daily') }));
+      info.appendChild(el('div', { style: 'font-size:12px;color:var(--ink-faint);margin-top:3px;', text: n.body }));
+      row.appendChild(info);
+      var toggle = document.createElement('input');
+      toggle.type = 'checkbox';
+      toggle.className = 'pg-notif-toggle';
+      toggle.checked = pgNotifSettings[n.id] !== false; // default on
+      toggle.addEventListener('change', function() {
+        pgNotifSettings[n.id] = toggle.checked;
+        try { localStorage.setItem(NOTIFS_KEY, JSON.stringify(pgNotifSettings)); } catch(e) {}
+        if (toggle.checked && permStatus === 'granted') scheduleNotification(n);
+        else if (_scheduledNotifs[n.id]) { clearTimeout(_scheduledNotifs[n.id]); delete _scheduledNotifs[n.id]; }
+      });
+      row.appendChild(toggle);
+      body.appendChild(row);
+    });
+
+    panel.appendChild(body);
+    overlay.appendChild(panel);
+    document.querySelector('.pg-root').appendChild(overlay);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // END NEW FEATURES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function toggleSelection(rowId, itemIndex) {
+    var scrollY = window.scrollY || window.pageYOffset || 0;
+    var current = pgSelections[rowId];
+    pgSelections[rowId] = (current === itemIndex) ? null : itemIndex;
+    saveSelections();
+    // Full re-render needed so cross-day "picked on Dx" badges update correctly,
+    // but we restore scroll position so there's no visible jump.
+    var body = document.querySelector("#pg-app > div:nth-child(4)");
+    if (body) {
+      var dayNum = parseInt((rowId.match(/^d(\d+)-/) || [])[1], 10);
+      var day = dayNum ? pgData.days.filter(function(d) { return d.num === dayNum; })[0] : null;
+      if (day) {
+        var usedElsewhere = buildUsedElsewhere(day.num);
+        // surgical: update only option rows for this rowId
+        var rows = document.querySelectorAll(".pg-option-row[data-row-id='" + rowId + "']");
+        rows.forEach(function(rowEl) {
+          var idx = parseInt(rowEl.dataset.itemIdx, 10);
+          var isPicked = pgSelections[rowId] === idx;
+          if (isPicked) rowEl.classList.add("pg-picked"); else rowEl.classList.remove("pg-picked");
+          rowEl.style.opacity = "";
+          var cb = rowEl.querySelector(".pg-check");
+          if (cb) cb.checked = isPicked;
+          var nameSpan = rowEl.querySelector(".pg-item-name");
+          if (nameSpan) nameSpan.style.fontWeight = isPicked ? "700" : "600";
+        });
+        // update route preview
+        updateRoutePreview(day);
+        // update "picked on" badges across all visible option rows on this page
+        // (other rows on same day might now show/hide a badge if their item name
+        // matches something that just changed)
+        var allRows = document.querySelectorAll(".pg-option-row");
+        allRows.forEach(function(rowEl) {
+          var rId = rowEl.dataset.rowId;
+          var iIdx = parseInt(rowEl.dataset.itemIdx, 10);
+          var row = day.rows.filter(function(r) { return r.id === rId; })[0];
+          if (!row || !row.items || !row.items[iIdx]) return;
+          var itemName = row.items[iIdx].name;
+          var usedOnDays = (usedElsewhere[itemName]) || [];
+          var existingBadge = rowEl.querySelector(".pg-used-badge");
+          if (usedOnDays.length > 0) {
+            var dayLabel = usedOnDays.map(function(d) { return "D" + d; }).join(", ");
+            if (existingBadge) {
+              existingBadge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 8v4l3 3M12 2a10 10 0 100 20A10 10 0 0012 2z" stroke-linecap="round"/></svg>&nbsp;picked on ' + dayLabel;
+            }
+            rowEl.style.opacity = (pgSelections[rId] === iIdx) ? "" : "0.65";
+          } else {
+            if (existingBadge) existingBadge.remove();
+            rowEl.style.opacity = "";
+          }
+        });
+        window.scrollTo(0, scrollY);
+        return;
+      }
+    }
+    // fallback: full render with scroll restore
+    render();
+    window.scrollTo(0, scrollY);
+  }
+
+  function itemMapsUrl(item) {
+    if (item.lat != null && item.lng != null) {
+      return "https://www.google.com/maps/search/?api=1&query=" + item.lat + "," + item.lng;
+    }
+    return item.url || null;
+  }
+
+  function itemTripadvisorUrl(item) {
+    return "https://www.tripadvisor.com/Search?q=" + encodeURIComponent(item.name);
+  }
+
+  function itemDriveUrl(item) {
+    if (item.lat == null || item.lng == null) return null;
+    return "https://www.google.com/maps/dir/?api=1&destination=" + item.lat + "," + item.lng + "&travelmode=driving";
+  }
+
+  function actionButton(href, label, iconHtml) {
+    if (!href) return null;
+    var btn = el("a", {
+      href: href, target: "_blank", rel: "noopener",
+      class: "pg-action-btn",
+      style: "display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); background: var(--surface-sunken); border-radius: 8px; padding: 5px 9px; text-decoration: none; white-space: nowrap;"
+    });
+    btn.appendChild(el("span", { style: "display:flex;", html: iconHtml }));
+    btn.appendChild(el("span", { text: label }));
+    return btn;
+  }
+
+  var ICON_PIN = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-5.5-7-11a7 7 0 0114 0c0 5.5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.2"/></svg>';
+  var ICON_STAR = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.7 7-6.3-3.8-6.3 3.8 1.7-7-5.4-4.8 7.1-.7z" stroke-linejoin="round"/></svg>';
+  var ICON_CAR = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 13l1.5-4.5A2 2 0 016.4 7h11.2a2 2 0 011.9 1.5L21 13M3 13v5a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-5M3 13h18M7 17h.01M17 17h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  // Build a map of item name -> array of day numbers where it's already been selected
+  // (excluding the current day being rendered)
+  function buildUsedElsewhere(currentDayNum) {
+    var used = {};
+    pgData.days.forEach(function(day) {
+      if (day.num === currentDayNum) return;
+      day.rows.forEach(function(row) {
+        if (!row.id || !row.items) return;
+        var selIdx = pgSelections[row.id];
+        if (selIdx == null) return;
+        var item = row.items[selIdx];
+        if (!item) return;
+        if (!used[item.name]) used[item.name] = [];
+        used[item.name].push(day.num);
+      });
+    });
+    return used;
+  }
+
+  function renderOptionItem(rowId, item, idx, usedElsewhere) {
+    var isChecked = pgSelections[rowId] === idx;
+    var usedOnDays = (usedElsewhere && usedElsewhere[item.name]) || [];
+    var isUsed = usedOnDays.length > 0;
+
+    var line = el("div", {
+      class: "pg-option-row" + (isChecked ? " pg-picked" : ""),
+      style: "padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; margin: 0 -12px;" + (isUsed && !isChecked ? " opacity: 0.65;" : "")
+    });
+    line.dataset.rowId = rowId;
+    line.dataset.itemIdx = String(idx);
+
+    var checkbox = el("input", { type: "checkbox", class: "pg-check" });
+    checkbox.checked = isChecked;
+    checkbox.addEventListener("change", function() { toggleSelection(rowId, idx); });
+    line.appendChild(checkbox);
+
+    var nameWrap = el("div", { style: "flex: 1; min-width: 0;" });
+    var nameLine = el("div", { style: "display: flex; gap: 8px; align-items: center; flex-wrap: wrap;" });
+    nameLine.appendChild(el("span", { class: "pg-item-name", style: "font-weight: " + (isChecked ? "700" : "600") + "; font-size: 14.5px; color: var(--ink);", text: item.name }));
+    if (item.rating) {
+      var badge = el("span", {
+        style: "display: inline-flex; align-items: center; gap: 3px; background: var(--surface-sunken); color: var(--ink); font-weight: 700; font-size: 11.5px; padding: 2px 8px; border-radius: 999px;"
+      });
+      badge.appendChild(el("span", { style: "color: #E0622A;", text: "\u2605" }));
+      badge.appendChild(el("span", { text: item.rating }));
+      if (item.count) badge.appendChild(el("span", { style: "color: var(--ink-faint); font-weight: 500;", text: "\u00B7 " + item.count }));
+      nameLine.appendChild(badge);
+    }
+    if (item.bookAhead) {
+      nameLine.appendChild(el("span", { class: "pg-book-badge",
+        html: '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>&nbsp;Book ahead'
+      }));
+    }
+    // "Already picked on Day X" badge
+    if (isUsed) {
+      var dayLabel = usedOnDays.map(function(d) { return "D" + d; }).join(", ");
+      nameLine.appendChild(el("span", {
+        class: "pg-used-badge",
+        style: "display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #A05A00; background: #FFF0D6; padding: 2px 8px; border-radius: 999px; white-space: nowrap;",
+        html: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 8v4l3 3M12 2a10 10 0 100 20A10 10 0 0012 2z" stroke-linecap="round"/></svg>&nbsp;picked on ' + dayLabel
+      }));
+    }
+    nameWrap.appendChild(nameLine);
+    if (item.note) {
+      nameWrap.appendChild(el("div", { style: "color: var(--ink-soft); font-size: 13px; margin-top: 2px;", text: item.note }));
+    }
+    var btnRow = el("div", { class: "pg-btn-row" });
+    var mapsBtn = actionButton(itemMapsUrl(item), "Maps", ICON_PIN);
+    var tripBtn = actionButton(itemTripadvisorUrl(item), "Tripadvisor", ICON_STAR);
+    var driveBtn = actionButton(itemDriveUrl(item), "Drive", ICON_CAR);
+    if (mapsBtn) btnRow.appendChild(mapsBtn);
+    if (tripBtn) btnRow.appendChild(tripBtn);
+    if (driveBtn) btnRow.appendChild(driveBtn);
+    // AI buttons (only for items with a real place name and coords)
+    if (item.lat != null) {
+      var dayNum = parseInt((rowId.match(/^d(\d+)-/) || [])[1], 10);
+      var day = dayNum ? pgData.days.filter(function(d) { return d.num === dayNum; })[0] : null;
+      var rowObj = day ? day.rows.filter(function(r) { return r.id === rowId; })[0] : null;
+      if (day && rowObj) {
+        var askBtn = el("button", { class: "pg-ai-btn" });
+        askBtn.innerHTML = ICON_AI + "&nbsp;Ask AI";
+        askBtn.addEventListener("click", function(e) { e.stopPropagation(); askAboutPlace(day, rowObj, item); });
+        btnRow.appendChild(askBtn);
+        var altBtn = el("button", { class: "pg-ai-btn", style: "background: var(--surface-sunken); color: var(--ink-soft);" });
+        altBtn.innerHTML = ICON_AI + "&nbsp;Alternatives";
+        altBtn.addEventListener("click", function(e) { e.stopPropagation(); showAlternatives(day, rowObj, item); });
+        btnRow.appendChild(altBtn);
+      }
+    }
+    if (btnRow.children.length > 0) nameWrap.appendChild(btnRow);
+    line.appendChild(nameWrap);
+    return line;
+  }
+
+  function renderRow(row, usedElsewhere) {
+    if (row.type === "flag") {
+      return el("div", {
+        style: "background: var(--danger-tint); border: 1px solid #F5C5C5; color: #8A2A2A; padding: 12px 16px; border-radius: 14px; font-size: 13.5px; margin: 16px 0 8px; display: flex; gap: 8px; align-items: flex-start;"
+      }, [
+        el("span", { style: "flex-shrink:0; margin-top: 1px;", html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D33A3A" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L2.5 17a1.5 1.5 0 001.3 2.3h16.4a1.5 1.5 0 001.3-2.3L13.7 3.9a1.5 1.5 0 00-2.6 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>' }),
+        el("span", { text: row.text })
+      ]);
+    }
+
+    var rowEl = el("div", { style: "padding: 18px 0; border-bottom: 1px solid var(--line);" });
+
+    var rowId = row.id || (row.label + row.type);
+    var isCollapsed = !!_collapsedRows[rowId];
+    var labelRow = el("div", { style: "display: flex; align-items: center; gap: 7px; margin-bottom: " + (isCollapsed ? "0" : "10px") + "; cursor: pointer; user-select: none;", });
+    labelRow.appendChild(el("span", { style: "display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--surface-sunken); border-radius: 8px; flex-shrink: 0;", html: rowIcon(row.color) }));
+    labelRow.appendChild(el("span", { style: "font-weight: 700; font-size: 13px; letter-spacing: 0.01em; color: var(--ink-soft); text-transform: uppercase;", text: row.label }));
+    var chevron = el("span", { class: "pg-row-chevron " + (isCollapsed ? "pg-shut" : "pg-open"), html: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>' });
+    labelRow.appendChild(chevron);
+
+    var contentCol = el("div", { class: "pg-row-content" + (isCollapsed ? " pg-collapsed" : "") });
+    contentCol.style.maxHeight = isCollapsed ? '0' : '2000px';
+    contentCol.style.paddingLeft = '33px';
+
+    labelRow.addEventListener('click', function() { toggleRowCollapse(rowId, contentCol, chevron); });
+
+    if (row.intro) {
+      contentCol.appendChild(el("div", { style: "font-size: 13.5px; color: var(--ink-faint); margin-bottom: 8px;", text: row.intro }));
+    }
+    if (row.type === "note") {
+      if (row.text) {
+        contentCol.appendChild(el("div", { style: "font-size: 14.5px; color: var(--ink); line-height: 1.7; margin-bottom: " + (row.bullets ? "10px" : "0") + ";", text: row.text }));
+      }
+      if (row.bullets && row.bullets.length) {
+        var bulletList = el("div", { style: "display: flex; flex-direction: column; gap: 6px; margin-top: 4px;" });
+        row.bullets.forEach(function(b) {
+          var bRow = el("div", { style: "display: flex; gap: 10px; align-items: flex-start;" });
+          bRow.appendChild(el("span", { style: "color: var(--accent); font-size: 14px; flex-shrink: 0; margin-top: 2px;", text: "\u25B8" }));
+          var bText = el("div", { style: "flex: 1; min-width: 0;" });
+          bText.appendChild(el("span", { style: "font-weight: 600; font-size: 14px; color: var(--ink);", text: b.title }));
+          if (b.desc) bText.appendChild(el("span", { style: "font-size: 13.5px; color: var(--ink-soft);", text: " \u2014 " + b.desc }));
+          bRow.appendChild(bText);
+          bulletList.appendChild(bRow);
+        });
+        contentCol.appendChild(bulletList);
+      }
+      if (row.link) {
+        var linkRow = el("div", { style: "margin-top: 12px;" });
+        var mapLink = el("a", {
+          href: row.link, target: "_blank", rel: "noopener",
+          class: "pg-action-btn",
+          style: "display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); background: var(--surface-sunken); border-radius: 8px; padding: 6px 11px; text-decoration: none;"
+        });
+        mapLink.appendChild(el("span", { html: ICON_PIN }));
+        mapLink.appendChild(el("span", { text: "Open in Maps" }));
+        linkRow.appendChild(mapLink);
+        contentCol.appendChild(linkRow);
+      }
+    } else if (row.type === "options") {
+      var optList = el("div", { style: "display: flex; flex-direction: column; gap: 2px;" });
+      row.items.forEach(function(item, idx) {
+        optList.appendChild(renderOptionItem(row.id, item, idx, usedElsewhere));
+      });
+      contentCol.appendChild(optList);
+      // Help us decide — only for meal/restaurant rows with 2+ items
+      if (row.items.length >= 2 && row.id) {
+        var dayNum = parseInt((row.id.match(/^d(\d+)-/) || [])[1], 10);
+        var rowDay = dayNum ? pgData.days.filter(function(d) { return d.num === dayNum; })[0] : null;
+        if (rowDay) {
+          var decideWrap = el("div", { style: "margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);" });
+          var decideBtn = el("button", { class: "pg-ai-btn", style: "width: 100%; justify-content: center; padding: 9px;" });
+          decideBtn.innerHTML = ICON_AI + "&nbsp;Help us decide";
+          decideBtn.addEventListener("click", function() { helpDecide(rowDay, row); });
+          decideWrap.appendChild(decideBtn);
+          contentCol.appendChild(decideWrap);
+        }
+      }
+    }
+
+    rowEl.appendChild(labelRow);
+    rowEl.appendChild(contentCol);
+    return rowEl;
+  }
+
+  function buildMapsUrl(route) {
+    if (!route || route.length < 2) return null;
+    var origin = route[0].lat + "," + route[0].lng;
+    var destination = route[route.length - 1].lat + "," + route[route.length - 1].lng;
+    var waypoints = route.slice(1, -1).map(function(s) {
+      return s.lat + "," + s.lng;
+    }).join("|");
+    var url = "https://www.google.com/maps/dir/?api=1&origin=" + origin + "&destination=" + destination + "&travelmode=driving";
+    if (waypoints) url += "&waypoints=" + encodeURIComponent(waypoints);
+    return url;
+  }
+
+  function renderRoutePreview(route) {
+    if (!route || route.length < 2) return null;
+    var wrap = el("div", { style: "background: var(--surface-tint); border-radius: 16px; padding: 16px 18px; margin-bottom: 18px;" });
+    wrap.id = "pg-route-preview";
+    var titleRow = el("div", { style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;" });
+    titleRow.appendChild(el("div", { style: "font-weight: 700; font-size: 13px; color: var(--accent-dark);", text: "Today's route" }));
+    var mapsUrl = buildMapsUrl(route);
+    if (mapsUrl) {
+      var mapBtn = el("a", {
+        class: "pg-maps-link",
+        href: mapsUrl, target: "_blank", rel: "noopener",
+        style: "display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--accent-dark); background: var(--surface); border-radius: 999px; padding: 6px 13px; text-decoration: none; white-space: nowrap; flex-shrink: 0;"
+      });
+      mapBtn.appendChild(el("span", { text: "Open in Maps" }));
+      mapBtn.appendChild(el("span", { class: "pg-maps-arrow", style: "color: var(--accent-dark);", html: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
+      titleRow.appendChild(mapBtn);
+    }
+    wrap.appendChild(titleRow);
+    var legend = el("div", { style: "display: flex; gap: 14px; align-items: center; margin-bottom: 10px;" });
+    var l1 = el("div", { style: "display: flex; align-items: center; gap: 5px;" });
+    l1.appendChild(el("div", { style: "width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0;" }));
+    l1.appendChild(el("span", { style: "font-size: 11.5px; color: var(--ink-faint);", text: "Your pick" }));
+    var l2 = el("div", { style: "display: flex; align-items: center; gap: 5px;" });
+    l2.appendChild(el("div", { style: "width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0;" }));
+    l2.appendChild(el("span", { style: "font-size: 11.5px; color: var(--ink-faint);", text: "Default" }));
+    legend.appendChild(l1);
+    legend.appendChild(l2);
+    wrap.appendChild(legend);
+
+    var list = el("div", { style: "display: flex; flex-direction: column;" });
+    route.forEach(function(stop, i) {
+      var isEnd = (i === 0 || i === route.length - 1);
+      var isPendingChoice = stop.isChoice && !stop.chosen;
+      var isLast = i === route.length - 1;
+
+      var stopRow = el("div", { style: "display: flex; gap: 12px;" });
+
+      var lineCol = el("div", { style: "display: flex; flex-direction: column; align-items: center; width: 16px; flex-shrink: 0;" });
+      var dot = el("div", {
+        style: "width: " + (isEnd ? "12px" : "10px") + "; height: " + (isEnd ? "12px" : "10px") + "; border-radius: 50%; flex-shrink: 0; margin-top: 3px; " +
+          "background: " + (isEnd ? "#15161A" : (isPendingChoice ? "#FFFFFF" : "#5B5FEF")) + "; " +
+          "border: 2px solid " + (isEnd ? "#15161A" : "#5B5FEF") + ";"
+      });
+      lineCol.appendChild(dot);
+      if (!isLast) {
+        lineCol.appendChild(el("div", { style: "width: 2px; flex: 1; background: #C7CBF5; min-height: 22px; margin-top: 2px;" }));
+      }
+      stopRow.appendChild(lineCol);
+
+      var textCol = el("div", { style: "flex: 1; padding-bottom: " + (isLast ? "0" : "14px") + "; min-width: 0;" });
+
+      // slot label pill (e.g. "Breakfast", "Beach", "Sightseeing")
+      if (stop.slotLabel) {
+        var slotColors = {
+          "Breakfast": { bg: "#FEF3E2", color: "#B96B1A" },
+          "Late lunch": { bg: "#E8EFFE", color: "#4347C4" },
+          "Lunch": { bg: "#E8EFFE", color: "#4347C4" },
+          "Dinner": { bg: "#EEF0FE", color: "#3336A8" },
+          "Dinner \u2014 fornello pronto": { bg: "#EEF0FE", color: "#3336A8" },
+          "Farewell dinner": { bg: "#EEF0FE", color: "#3336A8" },
+          "Beach": { bg: "#E6F7F5", color: "#0A7A6E" },
+          "Beach + lunch": { bg: "#E6F7F5", color: "#0A7A6E" },
+          "Afternoon \u2014 Otranto + beach": { bg: "#E6F7F5", color: "#0A7A6E" },
+          "Sightseeing": { bg: "#F0F0F0", color: "#555" },
+          "Airport": { bg: "#F0F0F0", color: "#555" },
+          "Safari": { bg: "#EAF4E8", color: "#2D7A1F" },
+          "Morning \u2014 Zoosafari": { bg: "#EAF4E8", color: "#2D7A1F" },
+          "Optional wine": { bg: "#F5EEF8", color: "#6B2F8A" },
+          "Afternoon \u2014 oil/cheese": { bg: "#FFF3E8", color: "#A0520A" },
+          "Morning \u2014 pasticciotto": { bg: "#FEF3E2", color: "#B96B1A" }
+        };
+        var sc = slotColors[stop.slotLabel] || { bg: "#F0F0F0", color: "#555" };
+        textCol.appendChild(el("div", {
+          style: "display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: " + sc.color + "; background: " + sc.bg + "; padding: 2px 8px; border-radius: 999px; margin-bottom: 3px;"
+        }, [el("span", { text: stop.slotLabel })]));
+      }
+
+      var labelLine = el("div", { style: "display: flex; align-items: center; gap: 7px; flex-wrap: wrap;" });
+      labelLine.appendChild(el("span", {
+        style: "font-size: 13.5px; font-weight: " + (isEnd ? "700" : "600") + "; color: " + (isPendingChoice ? "var(--ink-faint)" : "var(--ink)") + ";",
+        text: stop.label
+      }));
+      if (i === 0) labelLine.appendChild(el("span", { style: "font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--ink-faint); background: var(--surface); padding: 1px 7px; border-radius: 999px;", text: "START" }));
+      if (isLast) labelLine.appendChild(el("span", { style: "font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--ink-faint); background: var(--surface); padding: 1px 7px; border-radius: 999px;", text: "END" }));
+      if (isPendingChoice) labelLine.appendChild(el("span", { style: "font-size: 11px; font-weight: 600; color: var(--accent-dark);", text: "\u00B7 pick one below" }));
+      textCol.appendChild(labelLine);
+      stopRow.appendChild(textCol);
+
+      list.appendChild(stopRow);
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function resolveRoute(day) {
+    if (!day.route) return null;
+    var rowsById = {};
+    day.rows.forEach(function(row) {
+      if (row.id) rowsById[row.id] = row;
+    });
+    var resolved = [];
+    day.route.forEach(function(stop) {
+      if (stop.fromRow) {
+        var row = rowsById[stop.fromRow];
+        if (!row || !row.items || row.items.length === 0) return;
+        var selIdx = pgSelections[stop.fromRow];
+        var item = (selIdx != null && row.items[selIdx]) ? row.items[selIdx] : row.items[0];
+        if (item && item.lat != null && item.lng != null) {
+          resolved.push({
+            label: item.name,
+            slotLabel: row.label,
+            lat: item.lat, lng: item.lng,
+            isChoice: true, chosen: selIdx != null
+          });
+        }
+      } else {
+        resolved.push({
+          label: stop.label,
+          slotLabel: stop.slotLabel || null,
+          lat: stop.lat, lng: stop.lng
+        });
+      }
+    });
+    return resolved;
+  }
+
+  var LOGISTICS_ICONS = {
+    flight: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.5 13.5L4 17l1-4-3-2 4.5-.5L8 6l2.5 4 4.5.5-3 2 1 4z" stroke-linejoin="round"/><path d="M14 10l5.5-5.5a1.5 1.5 0 012 2L16 12" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    car: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13l1.5-4.5A2 2 0 016.4 7h11.2a2 2 0 011.9 1.5L21 13M3 13v5a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-5M3 13h18M7 17h.01M17 17h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    hotel: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13M3 21h18M9 21v-6h6v6" stroke-linejoin="round" stroke-linecap="round"/></svg>'
+  };
+
+  function renderLogistics(items) {
+    if (!items || items.length === 0) return null;
+    var wrap = el("div", { style: "background: var(--logistics-bg); border-left: 4px solid var(--accent); border-radius: 16px; padding: 16px 18px; margin-bottom: 16px;" });
+    wrap.appendChild(el("div", { style: "font-weight: 700; font-size: 12.5px; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px;", text: "Logistics" }));
+    var list = el("div", { style: "display: flex; flex-direction: column; gap: 10px;" });
+    items.forEach(function(it) {
+      var row = el("div", { style: "display: flex; align-items: flex-start; gap: 10px;" });
+      row.appendChild(el("span", { style: "color: rgba(255,255,255,0.85); flex-shrink: 0; margin-top: 2px;", html: LOGISTICS_ICONS[it.icon] || "" }));
+      var textCol = el("div", { style: "flex: 1; min-width: 0;" });
+      var topLine = el("div", { style: "display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap;" });
+      topLine.appendChild(el("span", { style: "color: white; font-weight: 600; font-size: 14px;", text: it.text }));
+      var timeRow = el("div", { style: "display: flex; align-items: center; gap: 8px; flex-shrink: 0;" });
+      timeRow.appendChild(el("span", { style: "color: white; font-weight: 700; font-size: 13px; white-space: nowrap;", text: it.time }));
+      if (it.icon === 'flight' && it.flightNum) {
+        var trackBtn = el('button', { class: 'pg-track-btn', text: 'Track live' });
+        timeRow.appendChild(trackBtn);
+      }
+      topLine.appendChild(timeRow);
+      textCol.appendChild(topLine);
+      if (it.meta) textCol.appendChild(el("div", { style: "color: rgba(255,255,255,0.55); font-size: 12px; margin-top: 1px;", text: it.meta }));
+      // Flight live data panel
+      if (it.icon === 'flight' && it.flightNum) {
+        var liveEl = el('div', { class: 'pg-flight-live', style: 'display:none;' });
+        var trackBtnRef = timeRow.querySelector('.pg-track-btn');
+        if (trackBtnRef) {
+          (function(btn, live, flightNum) {
+            btn.addEventListener('click', function() {
+              if (live.style.display !== 'none') { live.style.display = 'none'; btn.textContent = 'Track live'; return; }
+              if (!AVIATIONSTACK_KEY) {
+                live.style.display = 'block';
+                live.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12.5px;">Set AVIATIONSTACK_KEY in the HTML to enable live tracking.</div>';
+                return;
+              }
+              btn.textContent = 'Loading\u2026';
+              btn.disabled = true;
+              live.style.display = 'block';
+              live.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12px;">Fetching flight data\u2026</div>';
+              fetchFlight(flightNum).then(function(f) {
+                btn.textContent = 'Refresh'; btn.disabled = false;
+                if (!f) { live.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:12.5px;">No live data yet \u2014 available closer to departure.</div>'; return; }
+                var dep = f.departure || {}, arr = f.arrival || {};
+                var fmt = function(iso) { if (!iso) return '\u2014'; try { return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso.slice(11,16); } };
+                var delay = dep.delay ? (dep.delay > 0 ? '+' + dep.delay + 'm delay' : 'On time') : '';
+                live.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">' + flightStatusChip(f.flight_status) + (delay ? '<span style="font-size:12px;color:rgba(255,255,255,0.6);">' + delay + '</span>' : '') + '</div>' +
+                  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+                  '<div><div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Departs</div><div style="font-size:14px;font-weight:700;color:white;">' + fmt(dep.actual||dep.estimated||dep.scheduled) + '</div>' + (dep.terminal?'<div style="font-size:11px;color:rgba(255,255,255,0.5);">T' + dep.terminal + (dep.gate?' \u00B7 G'+dep.gate:'') + '</div>':'') + '</div>' +
+                  '<div><div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Arrives</div><div style="font-size:14px;font-weight:700;color:white;">' + fmt(arr.actual||arr.estimated||arr.scheduled) + '</div>' + (arr.terminal?'<div style="font-size:11px;color:rgba(255,255,255,0.5);">T' + arr.terminal + (arr.gate?' \u00B7 G'+arr.gate:'') + '</div>':'') + '</div></div>';
+              }).catch(function() { btn.textContent='Retry'; btn.disabled=false; live.innerHTML='<div style="color:rgba(255,255,255,0.5);font-size:12.5px;">Could not reach flight data.</div>'; });
+            });
+          })(trackBtnRef, liveEl, it.flightNum);
+        }
+        textCol.appendChild(liveEl);
+      }
+      row.appendChild(textCol);
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function renderDay(day) {
+    var wrap = el("div", {});
+
+    // Header row: pill + date + subtitle (truncates on desktop, hides on mobile)
+    var header = el("div", { style: "display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: nowrap; min-width: 0;" });
+    header.appendChild(el("span", {
+      style: "background: var(--ink); color: white; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; padding: 5px 11px; border-radius: 999px; flex-shrink: 0;",
+      text: "DAY " + day.num
+    }));
+    header.appendChild(el("span", { style: "font-weight: 800; font-size: 20px; flex-shrink: 0; letter-spacing: -0.01em;", text: day.date }));
+    header.appendChild(el("span", { class: "pg-day-subtitle", text: day.title }));
+    if (day.driveTime) {
+      var drivePill = el("div", { class: "pg-drive-pill", style: "flex-shrink: 0; margin-left: auto;" });
+      drivePill.appendChild(el("span", { html: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 13l1.5-4.5A2 2 0 016.4 7h11.2a2 2 0 011.9 1.5L21 13M3 13v5a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-5M3 13h18" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
+      drivePill.appendChild(el("span", { text: day.driveTime }));
+      header.appendChild(drivePill);
+    }
+    wrap.appendChild(header);
+
+    // Mobile-only subtitle (full text, wraps naturally)
+    wrap.appendChild(el("div", { class: "pg-day-subtitle-mobile", text: day.title }));
+
+    // AI day action buttons + GPS
+    var aiDayRow = el("div", { style: "display: flex; gap: 7px; margin: 8px 0 4px; flex-wrap: wrap;" });
+    var briefBtn = el("button", { class: "pg-ai-btn" });
+    briefBtn.innerHTML = ICON_AI + "&nbsp;Day briefing";
+    briefBtn.addEventListener("click", function() { showDayBriefing(day); });
+    aiDayRow.appendChild(briefBtn);
+    var replanBtn = el("button", { class: "pg-ai-btn", style: "background: var(--surface-sunken); color: var(--ink-soft);" });
+    replanBtn.innerHTML = ICON_AI + "&nbsp;Re-plan day";
+    replanBtn.addEventListener("click", function() { replanDay(day); });
+    aiDayRow.appendChild(replanBtn);
+    var gpsBtn = renderGPSButton(day);
+    if (gpsBtn) aiDayRow.appendChild(gpsBtn);
+    wrap.appendChild(aiDayRow);
+
+    // mustPack + bookAhead info row
+    var infoItems = [];
+    if (day.mustPack) infoItems.push({ icon: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke-linecap="round"/></svg>', color: "#0A7A6E", bg: "#E6F7F5", text: "Pack: " + day.mustPack });
+    if (day.bookAhead && day.bookAhead.length) {
+      day.bookAhead.forEach(function(b) {
+        infoItems.push({ icon: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>', color: "#7A3B00", bg: "#FFF0D6", text: "\u2192 Book ahead: " + b });
+      });
+    }
+    if (infoItems.length) {
+      var infoWrap = el("div", { style: "display: flex; flex-direction: column; gap: 5px; margin: 10px 0 18px;" });
+      infoItems.forEach(function(it) {
+        var row = el("div", { style: "display: flex; align-items: flex-start; gap: 7px; background: " + it.bg + "; border-radius: 10px; padding: 7px 12px;" });
+        row.appendChild(el("span", { style: "color: " + it.color + "; flex-shrink: 0; margin-top: 2px;", html: it.icon }));
+        row.appendChild(el("span", { style: "font-size: 12.5px; font-weight: 500; color: " + it.color + ";", text: it.text }));
+        infoWrap.appendChild(row);
+      });
+      wrap.appendChild(infoWrap);
+    } else {
+      wrap.style.marginTop = "18px";
+      // no-op: let the header bottom margin do the work
+      var spacer = el("div", { style: "height: 12px;" });
+      wrap.appendChild(spacer);
+    }
+
+    var logisticsCard = renderLogistics(day.logistics);
+    if (logisticsCard) wrap.appendChild(logisticsCard);
+
+    var routePreview = renderRoutePreview(resolveRoute(day));
+    if (routePreview) wrap.appendChild(routePreview);
+
+    var usedElsewhere = buildUsedElsewhere(day.num);
+
+    day.rows.forEach(function(row) {
+      wrap.appendChild(renderRow(row, usedElsewhere));
+    });
+
+    // Notes section at bottom of every day
+    wrap.appendChild(renderDayNotes(day.num));
+
+    return wrap;
+  }
+
+  function switchDay(num) {
+    activeDay = num;
+    render();
+  }
+
+  // ─── PWA Install prompt ───────────────────────────────────────────────────
+  var _deferredInstall = null;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    _deferredInstall = e;
+    // Show a subtle install banner if not already installed
+    var existing = document.getElementById('pg-install-banner');
+    if (!existing) {
+      var banner = document.createElement('div');
+      banner.id = 'pg-install-banner';
+      banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#15161A;color:white;font-family:Plus Jakarta Sans,sans-serif;font-size:13px;font-weight:600;padding:12px 18px;border-radius:999px;display:flex;align-items:center;gap:10px;z-index:9998;box-shadow:0 4px 20px rgba(0,0,0,0.3);white-space:nowrap;';
+      banner.innerHTML = '<span>\uD83C\uDF0A</span><span>Add to Home Screen</span>';
+      var installBtn = document.createElement('button');
+      installBtn.style.cssText = 'background:#5B5FEF;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;';
+      installBtn.textContent = 'Install';
+      installBtn.onclick = function() {
+        _deferredInstall.prompt();
+        _deferredInstall.userChoice.then(function() {
+          banner.remove();
+          _deferredInstall = null;
+        });
+      };
+      var closeX = document.createElement('button');
+      closeX.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.6);font-size:16px;cursor:pointer;padding:0 4px;';
+      closeX.textContent = '×';
+      closeX.onclick = function() { banner.remove(); };
+      banner.appendChild(installBtn);
+      banner.appendChild(closeX);
+      document.body.appendChild(banner);
+    }
+  });
+
+  // ─── Export picks as PDF (print view) ────────────────────────────────────
+  // ─── URL sync: encode picks into URL hash for cross-device sharing ────────
+  function encodePicksToUrl() {
+    try {
+      var json = JSON.stringify(pgSelections);
+      var encoded = btoa(encodeURIComponent(json));
+      var url = window.location.href.split('#')[0] + '#picks=' + encoded;
+      return url;
+    } catch (e) { return null; }
+  }
+
+  function decodePicksFromUrl() {
+    try {
+      var hash = window.location.hash;
+      if (!hash || !hash.includes('picks=')) return null;
+      var encoded = hash.split('picks=')[1];
+      var json = decodeURIComponent(atob(encoded));
+      return JSON.parse(json);
+    } catch (e) { return null; }
+  }
+
+  function copyShareLink() {
+    var url = encodePicksToUrl();
+    if (!url) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() {
+        showToast('Link copied! Open it on any device to load your picks.');
+      }).catch(function() { fallbackCopy(url); });
+    } else {
+      fallbackCopy(url);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('Link copied!'); }
+    catch (e) { showToast('Copy this URL: ' + text.slice(0, 60) + '...'); }
+    ta.remove();
+  }
+
+  function showToast(msg) {
+    var existing = document.getElementById('pg-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.id = 'pg-toast';
+    toast.textContent = msg;
+    toast.style.cssText = [
+      'position:fixed', 'bottom:calc(28px + var(--safe-bottom, 0px))',
+      'left:50%', 'transform:translateX(-50%)',
+      'background:#15161A', 'color:white',
+      'font-family:Plus Jakarta Sans,sans-serif',
+      'font-size:13px', 'font-weight:600',
+      'padding:12px 20px', 'border-radius:999px',
+      'z-index:9999', 'white-space:nowrap',
+      'box-shadow:0 4px 20px rgba(0,0,0,0.25)',
+      'transition:opacity 0.3s ease',
+      'max-width:calc(100vw - 40px)',
+      'text-align:center', 'line-height:1.4'
+    ].join(';');
+    document.body.appendChild(toast);
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      setTimeout(function() { toast.remove(); }, 300);
+    }, 3000);
+  }
+
+  function exportPicksPDF() {
+    var win = window.open('', '_blank');
+    if (!win) { alert('Please allow popups to export your picks.'); return; }
+
+    var rows = [];
+    pgData.days.forEach(function(day) {
+      var dayPicks = [];
+      day.rows.forEach(function(row) {
+        if (!row.id || !row.items) return;
+        var selIdx = pgSelections[row.id];
+        if (selIdx == null) return;
+        var item = row.items[selIdx];
+        if (!item) return;
+        dayPicks.push({ slot: row.label, name: item.name, note: item.note || '', rating: item.rating || '', lat: item.lat, lng: item.lng });
+      });
+      if (dayPicks.length) rows.push({ day: day, picks: dayPicks });
+    });
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Puglia Trip - My Picks</title><style>';
+    html += 'body{font-family:system-ui,sans-serif;color:#15161A;padding:32px;max-width:700px;margin:0 auto;font-size:14px;}';
+    html += 'h1{font-size:28px;font-weight:800;margin:0 0 4px;}';
+    html += '.meta{color:#6B6F7A;font-size:13px;margin-bottom:32px;}';
+    html += '.day-block{margin-bottom:28px;break-inside:avoid;}';
+    html += '.day-head{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid #15161A;padding-bottom:6px;margin-bottom:12px;}';
+    html += '.day-num{background:#15161A;color:white;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;}';
+    html += '.day-date{font-weight:700;font-size:16px;}';
+    html += '.day-title{color:#9CA0AA;font-size:13px;}';
+    html += '.pick-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #F0F0F0;align-items:flex-start;}';
+    html += '.slot{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#9CA0AA;width:90px;flex-shrink:0;padding-top:2px;}';
+    html += '.name{font-weight:600;font-size:14px;}';
+    html += '.note{color:#6B6F7A;font-size:12px;margin-top:1px;}';
+    html += '.rating{display:inline-block;background:#F5F6F8;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;}';
+    html += '.maps-link{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;color:#4347C4;text-decoration:none;}';
+    html += '@media print{body{padding:20px;}.maps-link{display:none;}}';
+    html += '</style></head><body>';
+    html += '<h1>\uD83C\uDF0A Puglia Trip \u2014 My Picks</h1>';
+    html += '<div class="meta">June 26 \u2013 July 4, 2026 &nbsp;\u00B7&nbsp; Monopoli base &nbsp;\u00B7&nbsp; ' + Object.values(pgSelections).filter(function(v){ return v!=null; }).length + ' selections confirmed</div>';
+
+    if (rows.length === 0) {
+      html += '<p style="color:#9CA0AA;">No picks yet - go back and check off your preferred options for each day.</p>';
+    } else {
+      rows.forEach(function(r) {
+        html += '<div class="day-block">';
+        html += '<div class="day-head"><span class="day-num">D' + r.day.num + '</span><span class="day-date">' + r.day.date + '</span><span class="day-title">' + r.day.title + '</span></div>';
+        r.picks.forEach(function(p) {
+          html += '<div class="pick-row">';
+          html += '<div class="slot">' + p.slot + '</div>';
+          html += '<div><div class="name">' + p.name;
+          if (p.rating) html += '<span class="rating">&#9733; ' + p.rating + '</span>';
+          html += '</div>';
+          if (p.note) html += '<div class="note">' + p.note + '</div>';
+          if (p.lat) {
+            var mapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng + '&travelmode=driving';
+            html += '<a class="maps-link" href="' + mapsUrl + '" target="_blank">\u25B8 Drive there</a>';
+          }
+          html += '</div></div>';
+        });
+        html += '</div>';
+      });
+    }
+
+    html += '<div style="margin-top:40px;padding-top:16px;border-top:1px solid #E8E9ED;font-size:12px;color:#9CA0AA;">Generated from Puglia Trip Planner &middot; ' + new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) + '</div>';
+    html += '</body></html>';
+
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(function() { win.print(); }, 500);
+  }
+
+  // ─── Trip overview map ────────────────────────────────────────────────────
+  var DAY_COLORS = [
+    "#E05A2B", // D1 terracotta
+    "#3B82F6", // D2 blue
+    "#10B981", // D3 green
+    "#F59E0B", // D4 amber
+    "#8B5CF6", // D5 purple
+    "#EC4899", // D6 pink
+    "#06B6D4", // D7 cyan
+    "#F97316", // D8 orange
+    "#6366F1"  // D9 indigo
+  ];
+
+  var _leafletLoaded = false;
+  var _mapInstance = null;
+  var _mapLayers = {}; // dayNum -> { markers: [], polyline }
+
+  function loadLeaflet() {
+    if (_leafletLoaded) return Promise.resolve();
+    return new Promise(function(resolve, reject) {
+      var css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+      document.head.appendChild(css);
+      var js = document.createElement('script');
+      js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      js.onload = function() { _leafletLoaded = true; resolve(); };
+      js.onerror = reject;
+      document.head.appendChild(js);
+    });
+  }
+
+  function buildMapStops() {
+    // Returns array of {dayNum, color, label, slotLabel, lat, lng, confirmed, stopNum}
+    var stops = [];
+    // Track LucAsia to show only once as a special base marker
+    var baseAdded = false;
+    var BASE = { lat: 40.953, lng: 17.301 };
+
+    pgData.days.forEach(function(day, di) {
+      var color = DAY_COLORS[di] || '#888';
+      var route = resolveRoute(day);
+      if (!route) return;
+      var dayStopNum = 0;
+
+      route.forEach(function(stop) {
+        if (!stop.lat || !stop.lng) return;
+        var isBase = Math.abs(stop.lat - BASE.lat) < 0.001 && Math.abs(stop.lng - BASE.lng) < 0.001;
+        var isAirport = stop.label && stop.label.includes('Airport');
+
+        if (isBase) {
+          // Only add the hotel once as a shared base marker
+          if (!baseAdded) {
+            stops.push({ dayNum: 0, color: '#15161A', label: 'LucAsia, Monopoli', slotLabel: 'Hotel base', lat: stop.lat, lng: stop.lng, confirmed: true, stopNum: 0, isBase: true });
+            baseAdded = true;
+          }
+          return;
+        }
+
+        dayStopNum++;
+        stops.push({
+          dayNum: day.num,
+          color: color,
+          label: stop.label,
+          slotLabel: stop.slotLabel || '',
+          lat: stop.lat,
+          lng: stop.lng,
+          confirmed: !stop.isChoice || stop.chosen,
+          stopNum: dayStopNum,
+          isAirport: isAirport
+        });
+      });
+    });
+    return stops;
+  }
+
+  function makeDivIcon(color, num, confirmed, isBase) {
+    var size = isBase ? 18 : 28;
+    var inner = isBase
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="' + color + '" stroke="white" stroke-width="1.5"><path d="M3 21V8l9-6 9 6v13M9 21v-5h6v5" stroke-linejoin="round"/></svg>'
+      : '<span style="font-size:11px;font-weight:800;color:' + (confirmed ? 'white' : color) + ';line-height:1;">' + num + '</span>';
+    var bg = confirmed ? color : 'white';
+    var border = '2.5px solid ' + color;
+    var shadow = confirmed ? '0 2px 8px ' + color + '66' : '0 2px 6px rgba(0,0,0,0.2)';
+    return window.L.divIcon({
+      html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + bg + ';border:' + border + ';display:flex;align-items:center;justify-content:center;box-shadow:' + shadow + ';">' + inner + '</div>',
+      iconSize: [size, size],
+      iconAnchor: [size/2, size/2],
+      popupAnchor: [0, -size/2 - 4],
+      className: ''
+    });
+  }
+
+  function showTripMap() {
+    var existing = document.getElementById('pg-map-overlay');
+    if (existing) { existing.remove(); return; }
+
+    var overlay = document.createElement('div');
+    overlay.id = 'pg-map-overlay';
+
+    var hdr = document.createElement('div');
+    hdr.id = 'pg-map-header';
+    hdr.innerHTML = '<div style="font-weight:800;font-size:17px;">Trip overview map</div>';
+    var closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'background:var(--surface-sunken);border:none;border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:20px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;';
+    closeBtn.textContent = '\u00D7';
+    closeBtn.onclick = function() { overlay.remove(); _mapInstance = null; };
+    hdr.appendChild(closeBtn);
+    overlay.appendChild(hdr);
+
+    var mapContainer = document.createElement('div');
+    mapContainer.id = 'pg-map-container';
+    var mapEl = document.createElement('div');
+    mapEl.id = 'pg-map';
+    mapContainer.appendChild(mapEl);
+    overlay.appendChild(mapContainer);
+
+    document.querySelector('.pg-root').appendChild(overlay);
+
+    loadLeaflet().then(function() {
+      var L = window.L;
+      var map = L.map('pg-map', { zoomControl: true, attributionControl: false });
+      _mapInstance = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18
+      }).addTo(map);
+
+      L.control.attribution({ prefix: '© OpenStreetMap' }).addTo(map);
+
+      var stops = buildMapStops();
+      var allLatLngs = [];
+      _mapLayers = {};
+
+      // Group stops by day
+      var byDay = {};
+      stops.forEach(function(s) {
+        var key = s.dayNum;
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push(s);
+      });
+
+      // Render base marker first
+      if (byDay[0]) {
+        byDay[0].forEach(function(s) {
+          var icon = makeDivIcon(s.color, 0, true, true);
+          var marker = L.marker([s.lat, s.lng], { icon: icon, zIndexOffset: 1000 });
+          marker.bindPopup(
+            '<div style="font-family:Plus Jakarta Sans,sans-serif;min-width:160px;">' +
+            '<div style="font-weight:700;font-size:14px;margin-bottom:2px;">' + s.label + '</div>' +
+            '<div style="font-size:12px;color:#6B6F7A;">Your base for all 9 nights</div></div>',
+            { className: 'pg-map-popup' }
+          );
+          marker.addTo(map);
+          allLatLngs.push([s.lat, s.lng]);
+        });
+      }
+
+      // Render each day
+      pgData.days.forEach(function(day, di) {
+        var dayStops = byDay[day.num] || [];
+        if (!dayStops.length) return;
+        var color = DAY_COLORS[di];
+        var layerMarkers = [];
+        var polyLatLngs = [];
+
+        // Add base coords to polyline start/end
+        var baseCoord = [40.953, 17.301];
+        // Find if this day starts/ends at base from route
+        var route = resolveRoute(day);
+        var routeHasBase = route && route.some(function(s) {
+          return Math.abs(s.lat - 40.953) < 0.001 && Math.abs(s.lng - 17.301) < 0.001;
+        });
+        if (routeHasBase) polyLatLngs.push(baseCoord);
+
+        dayStops.forEach(function(s) {
+          allLatLngs.push([s.lat, s.lng]);
+          polyLatLngs.push([s.lat, s.lng]);
+          var icon = makeDivIcon(color, s.stopNum, s.confirmed, false);
+          var marker = L.marker([s.lat, s.lng], { icon: icon });
+
+          var driveUrl = s.lat ? 'https://www.google.com/maps/dir/?api=1&destination=' + s.lat + ',' + s.lng + '&travelmode=driving' : null;
+          var popupHtml =
+            '<div style="font-family:Plus Jakarta Sans,sans-serif;min-width:180px;">' +
+            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+            '<span style="background:' + color + ';color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;">D' + day.num + '</span>' +
+            (s.slotLabel ? '<span style="font-size:11px;color:#6B6F7A;font-weight:600;text-transform:uppercase;">' + s.slotLabel + '</span>' : '') +
+            '</div>' +
+            '<div style="font-weight:700;font-size:14px;margin-bottom:2px;">' + s.label + '</div>' +
+            '<div style="font-size:12px;color:#9CA0AA;margin-bottom:8px;">' + day.date + (s.confirmed ? '' : ' \u00B7 default pick') + '</div>' +
+            (driveUrl ? '<a href="' + driveUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#4347C4;text-decoration:none;">Drive there \u2197</a>' : '') +
+            '</div>';
+          marker.bindPopup(popupHtml, { className: 'pg-map-popup', maxWidth: 240 });
+          marker.addTo(map);
+          layerMarkers.push(marker);
+        });
+
+        if (routeHasBase) polyLatLngs.push(baseCoord);
+
+        // Draw route polyline
+        var polyline = null;
+        if (polyLatLngs.length >= 2) {
+          polyline = L.polyline(polyLatLngs, {
+            color: color, weight: 2.5, opacity: 0.65,
+            dashArray: '6 5', lineCap: 'round'
+          }).addTo(map);
+        }
+
+        _mapLayers[day.num] = { markers: layerMarkers, polyline: polyline, visible: true };
+      });
+
+      // Fit map to all stops with padding
+      if (allLatLngs.length) {
+        map.fitBounds(allLatLngs, { padding: [40, 40] });
+      }
+
+      // Legend
+      var legend = document.createElement('div');
+      legend.id = 'pg-map-legend';
+      var legendTitle = document.createElement('div');
+      legendTitle.style.cssText = 'font-weight:800;font-size:12px;margin-bottom:6px;color:#15161A;display:flex;align-items:center;justify-content:space-between;gap:8px;';
+      legendTitle.innerHTML = '<span>Days</span>';
+      var toggleAllBtn = document.createElement('button');
+      toggleAllBtn.textContent = 'Deselect all';
+      toggleAllBtn.style.cssText = 'font-size:10.5px;font-weight:700;color:#4347C4;background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;';
+      var allChecked = true;
+      toggleAllBtn.addEventListener('click', function() {
+        allChecked = !allChecked;
+        toggleAllBtn.textContent = allChecked ? 'Deselect all' : 'Select all';
+        legend.querySelectorAll('input[type=checkbox]').forEach(function(cb) {
+          if (cb.checked !== allChecked) { cb.checked = allChecked; cb.dispatchEvent(new Event('change')); }
+        });
+      });
+      legendTitle.appendChild(toggleAllBtn);
+      legend.appendChild(legendTitle);
+
+      pgData.days.forEach(function(day, di) {
+        var color = DAY_COLORS[di];
+        var lbl = document.createElement('label');
+        var cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.checked = true; cb.style.accentColor = color;
+        cb.addEventListener('change', function() {
+          var layer = _mapLayers[day.num];
+          if (!layer) return;
+          var show = cb.checked;
+          layer.markers.forEach(function(m) {
+            if (show) m.addTo(map); else map.removeLayer(m);
+          });
+          if (layer.polyline) {
+            if (show) layer.polyline.addTo(map); else map.removeLayer(layer.polyline);
+          }
+          layer.visible = show;
+        });
+        var dot = document.createElement('div');
+        dot.className = 'pg-map-dot';
+        dot.style.background = color;
+        var txt = document.createElement('span');
+        txt.style.color = '#15161A';
+        txt.textContent = 'D' + day.num + ' \u00B7 ' + day.title.split('\u2014')[0].trim().split('+')[0].trim();
+        lbl.appendChild(cb); lbl.appendChild(dot); lbl.appendChild(txt);
+        legend.appendChild(lbl);
+      });
+
+      mapContainer.appendChild(legend);
+
+      // Force Leaflet to recalculate size after DOM settle
+      setTimeout(function() { map.invalidateSize(); }, 100);
+    }).catch(function(err) {
+      mapContainer.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif;color:#888;">Could not load map — check your internet connection.<br><small>' + err.message + '</small></div>';
+    });
+  }
+
+  function showPicksSummary() {
+    var existing = document.getElementById("pg-summary-overlay");
+    if (existing) { existing.remove(); return; }
+
+    var overlay = el("div", { class: "pg-summary-overlay", id: "pg-summary-overlay" });
+    overlay.addEventListener("click", function(e) { if (e.target === overlay) overlay.remove(); });
+
+    var panel = el("div", { class: "pg-summary-panel" });
+
+    var panelHeader = el("div", { style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;" });
+    panelHeader.appendChild(el("div", { style: "font-weight: 800; font-size: 20px; letter-spacing: -0.01em;", text: "My picks" }));
+    var closeBtn = el("button", {
+      style: "background: var(--surface-sunken); border: none; border-radius: 999px; width: 32px; height: 32px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: var(--ink-soft); flex-shrink: 0;",
+      text: "\u00D7"
+    });
+    closeBtn.addEventListener("click", function() { overlay.remove(); });
+    panelHeader.appendChild(closeBtn);
+    panel.appendChild(panelHeader);
+
+    var hasPicks = false;
+    pgData.days.forEach(function(day) {
+      var dayPicks = [];
+      day.rows.forEach(function(row) {
+        if (!row.id || !row.items) return;
+        var selIdx = pgSelections[row.id];
+        if (selIdx == null) return;
+        var item = row.items[selIdx];
+        if (!item) return;
+        dayPicks.push({ label: row.label, name: item.name, url: item.url, lat: item.lat, lng: item.lng });
+      });
+      if (!dayPicks.length) return;
+      hasPicks = true;
+
+      var dayBlock = el("div", { style: "margin-bottom: 20px;" });
+      var dayHead = el("div", { style: "display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line);" });
+      dayHead.appendChild(el("span", { style: "background: var(--ink); color: white; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;", text: "D" + day.num }));
+      dayHead.appendChild(el("span", { style: "font-weight: 700; font-size: 14px;", text: day.date }));
+      dayHead.appendChild(el("span", { style: "font-size: 13px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;", text: day.title }));
+      dayBlock.appendChild(dayHead);
+
+      dayPicks.forEach(function(pick) {
+        var pickRow = el("div", { style: "display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--surface-sunken);" });
+        pickRow.appendChild(el("div", { style: "font-size: 11px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.02em; width: 90px; flex-shrink: 0; padding-top: 2px;", text: pick.label }));
+        var nameCol = el("div", { style: "flex: 1; min-width: 0;" });
+        nameCol.appendChild(el("div", { style: "font-weight: 600; font-size: 14px; color: var(--ink);", text: pick.name }));
+        var pickBtns = el("div", { style: "display: flex; gap: 5px; margin-top: 5px; flex-wrap: nowrap;" });
+        if (pick.lat != null) {
+          var mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + pick.lat + "," + pick.lng;
+          var driveUrl = "https://www.google.com/maps/dir/?api=1&destination=" + pick.lat + "," + pick.lng + "&travelmode=driving";
+          pickBtns.appendChild(actionButton(mapsUrl, "Maps", ICON_PIN));
+          pickBtns.appendChild(actionButton(driveUrl, "Drive", ICON_CAR));
+        }
+        nameCol.appendChild(pickBtns);
+        pickRow.appendChild(nameCol);
+        dayBlock.appendChild(pickRow);
+      });
+      panel.appendChild(dayBlock);
+    });
+
+    if (!hasPicks) {
+      panel.appendChild(el("div", { style: "text-align: center; color: var(--ink-soft); font-size: 14.5px; padding: 32px 0;",
+        text: "No picks yet \u2014 check off your preferred options on each day and they'll appear here."
+      }));
+    }
+
+    // Footer with export button
+    var panelFooter = el("div", { style: "margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; gap: 10px; flex-wrap: wrap;" });
+
+    var exportBtn = el("button", {
+      style: "display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--ink); color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer;",
+      html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/><path d="M12 3v12M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke-linecap="round" stroke-linejoin="round"/></svg>&nbsp;Export as PDF'
+    });
+    exportBtn.addEventListener("click", function() { exportPicksPDF(); });
+    panelFooter.appendChild(exportBtn);
+
+    var shareBtn = el("button", {
+      style: "display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; background: var(--accent-tint); color: var(--accent-dark); border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer;",
+      html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" stroke-linecap="round" stroke-linejoin="round"/></svg>&nbsp;Copy sync link'
+    });
+    shareBtn.addEventListener("click", function() { copyShareLink(); });
+    panelFooter.appendChild(shareBtn);
+
+    var clearBtn = el("button", {
+      style: "display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; background: var(--surface-sunken); color: var(--ink-soft); border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer;",
+      text: "Clear all picks"
+    });
+    clearBtn.addEventListener("click", function() {
+      if (confirm("Clear all picks across all days?")) {
+        pgSelections = {};
+        saveSelections();
+        overlay.remove();
+        render();
+      }
+    });
+    panelFooter.appendChild(clearBtn);
+    panel.appendChild(panelFooter);
+
+    overlay.appendChild(panel);
+    document.querySelector(".pg-root").appendChild(overlay);
+  }
+
+  function render() {
+    var app = document.getElementById("pg-app");
+    app.innerHTML = "";
+
+    var header = el("div", { style: "padding: 36px 28px 22px; text-align: center;" });
+    header.appendChild(el("div", { style: "font-weight: 800; font-size: 34px; letter-spacing: -0.02em; color: var(--ink);", text: pgData.meta.title }));
+    header.appendChild(el("div", { style: "font-size: 14.5px; color: var(--accent-dark); font-weight: 700; margin-top: 6px;", text: pgData.meta.subtitle + "  \u00B7  " + pgData.meta.dates }));
+    header.appendChild(el("div", { style: "font-size: 13px; color: var(--ink-faint); margin-top: 4px;", text: pgData.meta.base }));
+    app.appendChild(header);
+
+    var nav = el("div", { style: "display: flex; gap: 6px; overflow-x: auto; justify-content: flex-start; padding: 12px 20px 14px; padding-top: calc(var(--safe-top, 0px) + 12px); position: sticky; top: 0; z-index: 5; background: var(--surface); -webkit-overflow-scrolling: touch; scrollbar-width: none; box-shadow: 0 1px 0 var(--line);" });
+    nav.setAttribute("id", "pg-nav");
+    var navInner = el("div", { style: "display: flex; gap: 6px; margin: 0 auto;" });
+    pgData.days.forEach(function(day) {
+      var isActive = day.num === activeDay;
+      var btn = el("button", {
+        class: "pg-tab-btn",
+        style: "font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 14px; border: none; flex-shrink: 0; background: " + (isActive ? "var(--ink)" : "var(--surface-sunken)") + "; color: " + (isActive ? "white" : "var(--ink-soft)") + ";",
+        text: "D" + day.num
+      });
+      btn.addEventListener("click", function() { switchDay(day.num); });
+      navInner.appendChild(btn);
+    });
+    nav.appendChild(navInner);
+
+    // My Picks summary button
+    var totalPicks = Object.values(pgSelections).filter(function(v) { return v != null; }).length;
+    var picksBtn = el("button", {
+      class: "pg-tab-btn",
+      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: " + (totalPicks > 0 ? "var(--accent-tint)" : "var(--surface-sunken)") + "; color: " + (totalPicks > 0 ? "var(--accent-dark)" : "var(--ink-soft)") + "; margin-left: 6px;",
+      text: "\u2713 My picks" + (totalPicks > 0 ? " (" + totalPicks + ")" : "")
+    });
+    picksBtn.addEventListener("click", function() { showPicksSummary(); });
+    navInner.appendChild(picksBtn);
+
+    var mapBtn = el("button", {
+      class: "pg-tab-btn",
+      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft); margin-left: 2px;",
+    });
+    mapBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7M9 20l6-3M9 20V7m6 13l4.553 2.276A1 1 0 0021 21.382V10.618a1 1 0 00-.553-.894L15 7m0 13V7M9 7l6-3" stroke-linecap="round" stroke-linejoin="round"/></svg>Trip map';
+    mapBtn.addEventListener("click", function() { showTripMap(); });
+    navInner.appendChild(mapBtn);
+
+    var phraseBtn = el("button", {
+      class: "pg-tab-btn",
+      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft);",
+      text: "\uD83C\uDDEE\uD83C\uDDF9 Phrases"
+    });
+    phraseBtn.addEventListener("click", function() { showPhrasebook(); });
+    navInner.appendChild(phraseBtn);
+
+    var notifBtn = el("button", {
+      class: "pg-tab-btn",
+      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft);",
+      html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>Alerts'
+    });
+    notifBtn.addEventListener("click", function() { showNotificationsPanel(); });
+    navInner.appendChild(notifBtn);
+
+    // Sync status pill
+    var syncPill = el("div", {
+      id: "pg-sync-status",
+      style: "display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: #9CA0AA; padding: 6px 10px; flex-shrink: 0; white-space: nowrap;"
+    });
+    syncPill.innerHTML = '<span style="font-size:12px;">\uD83D\uDCBE</span><span>Local only</span>';
+    navInner.appendChild(syncPill);
+
+    app.appendChild(nav);
+    var activeBtn = navInner.children[activeDay - 1];
+    if (activeBtn && activeBtn.scrollIntoView) {
+      activeBtn.scrollIntoView({ block: "nearest", inline: "center" });
+    }
+
+    var currentDay = pgData.days.filter(function(d) { return d.num === activeDay; })[0];
+    var body = el("div", { style: "padding: 4px 28px 8px;" });
+    body.appendChild(renderDay(currentDay));
+    app.appendChild(body);
+
+    var pager = el("div", { style: "display: flex; justify-content: space-between; padding: 16px 28px 28px;" });
+    var prevBtn = el("button", {
+      class: "pg-pager-btn",
+      style: "display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; border-radius: 10px; padding: 9px 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); visibility: " + (activeDay > 1 ? "visible" : "hidden") + ";"
+    });
+    prevBtn.appendChild(el("span", { html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
+    prevBtn.appendChild(el("span", { text: "Day " + (activeDay - 1) }));
+    prevBtn.disabled = activeDay <= 1;
+    prevBtn.addEventListener("click", function() { if (activeDay > 1) switchDay(activeDay - 1); });
+
+    var nextBtn = el("button", {
+      class: "pg-pager-btn",
+      style: "display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; border-radius: 10px; padding: 9px 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); visibility: " + (activeDay < 9 ? "visible" : "hidden") + ";"
+    });
+    nextBtn.appendChild(el("span", { text: "Day " + (activeDay + 1) }));
+    nextBtn.appendChild(el("span", { html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
+    nextBtn.disabled = activeDay >= 9;
+    nextBtn.addEventListener("click", function() { if (activeDay < 9) switchDay(activeDay + 1); });
+
+    pager.appendChild(prevBtn);
+    pager.appendChild(nextBtn);
+    app.appendChild(pager);
+
+    var footer = el("div", { style: "padding: 18px 28px 30px; text-align: center; font-size: 12.5px; color: var(--ink-faint); border-top: 1px solid var(--line);" });
+    footer.appendChild(el("span", { text: "Monopoli \u00B7 Polignano \u00B7 Valle d'Itria \u00B7 Ostuni \u00B7 Cisternino \u00B7 Lecce \u00B7 Otranto \u00B7 Bari" }));
+    app.appendChild(footer);
+  }
+
+})();
+</script>
+
+<script>
+// ─── PWA: Manifest (injected as blob) ───────────────────────────────────────
+(function() {
+  var manifest = {
+    name: "Puglia Trip Planner",
+    short_name: "Puglia Trip",
+    description: "9-day Puglia travel planner, June 26 – July 4, 2026",
+    start_url: "./",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: "#15161A",
+    theme_color: "#15161A",
+    icons: [
+      {
+        src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%2315161A'/><text y='360' x='256' text-anchor='middle' font-size='320' font-family='system-ui'>%F0%9F%8C%8A</text></svg>",
+        sizes: "512x512",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      }
+    ]
+  };
+  var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  var url = URL.createObjectURL(blob);
+  document.getElementById('pg-manifest').setAttribute('href', url);
+})();
+
+// ─── PWA: Service Worker (registers sw.js — deploy both files to Netlify) ────
+(function() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js', { scope: './' })
+    .then(function(reg) {
+      console.log('[PWA] Service worker registered, scope:', reg.scope);
+    })
+    .catch(function(err) {
+      // Silently ignore in local/file:// contexts — only works on HTTPS
+      console.info('[PWA] SW not registered (expected in local preview):', err.message);
+    });
+})();
+
+// ─── Offline/online detection ────────────────────────────────────────────────
+(function() {
+  function updateOnlineStatus() {
+    if (navigator.onLine) {
+      document.body.classList.remove('pg-offline');
+    } else {
+      document.body.classList.add('pg-offline');
+    }
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+})();
+</script>
+</body>
+</html>
