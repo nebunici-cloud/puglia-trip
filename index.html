@@ -866,11 +866,7 @@
         }
       });
 
-      // Load app password from Firebase — resolve promise once we have it
-      _fbDatabase.ref('/puglia-trip/config/password').once('value', function(snap) {
-        var p = snap.val();
-        if (p) _appPassword = p;
-      });
+      // Password is now hash-based in HTML — no Firebase load needed
       setSyncStatus("synced");
       console.log("[Sync] Firebase connected");
     } catch (e) {
@@ -880,7 +876,9 @@
   }
 
   var _authenticated = false;
-  var _appPassword = null; // loaded from Firebase
+  // SHA256 of password "puglia2026" — to change password, update hash + re-upload
+  // Generate new hash at: https://emn178.github.io/online-tools/sha256.html
+  var PASSWORD_HASH = "350db86b707249fcbf5621133c5e146d398ead577c3e682c2794de1911b36846";
 
   function showLockScreen() {
     // Render app first (hidden) so it's instant after unlock
@@ -923,39 +921,34 @@
     var btn = document.getElementById('pg-lock-btn');
     var errEl = document.getElementById('pg-lock-err');
 
+    async function sha256(str) {
+      var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(function(b) {
+        return b.toString(16).padStart(2, '0');
+      }).join('');
+    }
+
     function tryUnlock() {
       var entered = input.value.trim();
       if (!entered) return;
-      if (_appPassword && entered === _appPassword) {
-        unlock(entered);
-      } else if (!_appPassword) {
-        // Password not loaded from Firebase yet — retry in 1s
-        btn.textContent = 'Checking\u2026';
-        btn.disabled = true;
-        setTimeout(function() {
+      btn.textContent = 'Checking\u2026';
+      btn.disabled = true;
+      sha256(entered).then(function(hash) {
+        if (hash === PASSWORD_HASH) {
+          try { localStorage.setItem('puglia-auth', hash); } catch(e) {}
+          _authenticated = true;
+          lock.remove();
+          var root = document.querySelector('.pg-root');
+          if (root) root.style.display = '';
+          if (!document.getElementById('pg-app').children.length) render();
+        } else {
+          errEl.textContent = 'Incorrect password';
+          input.value = '';
+          input.focus();
           btn.textContent = 'Open planner';
           btn.disabled = false;
-          if (_appPassword && entered === _appPassword) {
-            unlock(entered);
-          } else {
-            errEl.textContent = 'Incorrect password';
-            input.value = '';
-            input.focus();
-          }
-        }, 1200);
-      } else {
-        errEl.textContent = 'Incorrect password';
-        input.value = '';
-        input.focus();
-      }
-    }
-
-    function unlock(pwd) {
-      try { localStorage.setItem('puglia-auth', btoa(pwd)); } catch(e) {}
-      _authenticated = true;
-      lock.remove();
-      var root = document.querySelector('.pg-root');
-      if (root) root.style.display = '';
+        }
+      });
     }
 
     btn.addEventListener('click', tryUnlock);
@@ -993,34 +986,23 @@
     // Load Anthropic key (fast path — Firebase will update this after connecting)
     try { var ak = localStorage.getItem('puglia-anthropic-key'); if (ak) _anthropicKey = ak; } catch(e) {}
 
-    // Connect Firebase first, wait for password to load before deciding auth
-    await initFirebase();
+    // Check auth instantly — no Firebase wait needed (hash is in HTML)
+    var savedHash = null;
+    try { savedHash = localStorage.getItem('puglia-auth'); } catch(e) {}
 
-    // Wait up to 3 seconds for Firebase to load the password
-    if (!_appPassword) {
-      await new Promise(function(resolve) {
-        var attempts = 0;
-        var check = setInterval(function() {
-          attempts++;
-          if (_appPassword || attempts >= 15) { clearInterval(check); resolve(); }
-        }, 200);
-      });
-    }
-
-    // Check authentication
-    var savedAuth = null;
-    try { savedAuth = localStorage.getItem('puglia-auth'); } catch(e) {}
-
-    if (_appPassword && savedAuth !== btoa(_appPassword)) {
-      // Show lock screen — password exists and this device isn't authenticated
-      showLockScreen();
-    } else {
-      // No password set, or device already authenticated
+    if (savedHash && savedHash === PASSWORD_HASH) {
+      // Already authenticated on this device
       _authenticated = true;
       render();
+    } else {
+      // Show lock screen before rendering
+      showLockScreen();
     }
 
-    // Schedule notifications after render
+    // Connect Firebase in background for picks/notes/AI key sync
+    initFirebase();
+
+    // Schedule notifications
     if ('Notification' in window && Notification.permission === 'granted') {
       scheduleAllNotifications();
     }
@@ -1223,21 +1205,85 @@
     });
 
     showAIPanel({
-      title: 'Find alternatives',
+      title: 'Alternatives',
       subtitle: row.label + ' \u2014 Day ' + day.num + ', ' + day.date,
       onLoad: async function() {
         var text = await callAI(
-          'You are an expert local guide for Puglia, Italy. Give concise, specific, actionable suggestions. Format your response in clean markdown with **bold** for place names.',
+          'You are an expert local guide for Puglia, Italy. Return ONLY valid JSON, no markdown, no explanation. Return an array of exactly 3 alternative places.',
           ctx + '\n\n' +
           'The user wants alternatives to: "' + currentItem.name + '" (' + row.label + ').\n' +
-          'Reason could be: fully booked, already tried it, change of mood.\n' +
           (otherPicks.length ? 'Other picks for this day: ' + otherPicks.join('; ') + '.\n' : '') +
-          '\nSuggest 3 specific alternatives in the same area (' + day.title + '). For each give:\n' +
-          '- Name and one-sentence why it fits\n- What to order / what specifically to do there\n- One practical tip (opening hours, booking, parking)\n\nBe direct and confident. No generic filler.'
+          '\nReturn a JSON array of exactly 3 alternatives in the same area. Each object must have:\n' +
+          '{\n' +
+          '  "name": "Place name",\n' +
+          '  "why": "One sentence why it fits",\n' +
+          '  "order": "What to order or do specifically",\n' +
+          '  "tip": "One practical tip",\n' +
+          '  "mapsQuery": "name + city for Google Maps search"\n' +
+          '}\n\n' +
+          'Return ONLY the JSON array, no other text.'
         );
-        return aiTextToHtml(text);
+
+        // Try to parse as JSON for structured display
+        try {
+          var alts = JSON.parse(text.replace(/```json|```/g, '').trim());
+          var html = '<div style="display:flex;flex-direction:column;gap:0;">';
+          alts.forEach(function(alt, i) {
+            var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(alt.mapsQuery || alt.name);
+            var driveUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(alt.mapsQuery || alt.name) + '&travelmode=driving';
+            html += '<div class="pg-alt-item">' +
+              '<div style="font-weight:700;font-size:15px;color:var(--ink);margin-bottom:4px;">' + alt.name + '</div>' +
+              '<div style="font-size:13.5px;color:var(--ink-soft);margin-bottom:3px;">' + alt.why + '</div>' +
+              (alt.order ? '<div style="font-size:13px;color:var(--ink-soft);margin-bottom:3px;">\uD83C\uDF7D\uFE0F ' + alt.order + '</div>' : '') +
+              (alt.tip ? '<div style="font-size:12.5px;color:var(--ink-faint);font-style:italic;margin-bottom:8px;">\uD83D\uDCA1 ' + alt.tip + '</div>' : '') +
+              '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+              '<a href="' + mapsUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--ink-soft);background:var(--surface-sunken);border-radius:8px;padding:5px 9px;text-decoration:none;">' + ICON_PIN + '&nbsp;Maps</a>' +
+              '<a href="' + driveUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--ink-soft);background:var(--surface-sunken);border-radius:8px;padding:5px 9px;text-decoration:none;">' + ICON_CAR + '&nbsp;Drive</a>' +
+              '<button onclick="addAltToPlan(\'' + encodeURIComponent(JSON.stringify(alt)) + '\',\'' + row.id + '\',\'' + day.num + '\')" style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--accent-dark);background:var(--accent-tint);border:none;border-radius:8px;padding:5px 9px;cursor:pointer;">\u271A Add to plan</button>' +
+              '</div>' +
+              '</div>';
+          });
+          html += '</div>';
+          return html;
+        } catch(e) {
+          // Fallback to plain text
+          return aiTextToHtml(text);
+        }
       }
     });
+  }
+
+  // Add an AI-suggested alternative to the day's options list
+  function addAltToPlan(encodedAlt, rowId, dayNum) {
+    try {
+      var alt = JSON.parse(decodeURIComponent(encodedAlt));
+      var day = pgData.days.filter(function(d) { return d.num === parseInt(dayNum); })[0];
+      var row = day && day.rows.filter(function(r) { return r.id === rowId; })[0];
+      if (!row || !row.items) return;
+      // Check not already in list
+      if (row.items.some(function(it) { return it.name === alt.name; })) {
+        showToast('Already in the list');
+        return;
+      }
+      row.items.push({
+        name: alt.name,
+        url: null,
+        rating: null,
+        count: null,
+        note: alt.why || alt.order || '',
+        lat: null,
+        lng: null
+      });
+      showToast('\u2713 "' + alt.name + '" added to ' + row.label);
+      // Close AI panel and re-render
+      var overlay = document.getElementById('pg-ai-overlay');
+      if (overlay) overlay.remove();
+      var scrollY = window.scrollY || 0;
+      render();
+      window.scrollTo(0, scrollY);
+    } catch(e) {
+      showToast('Could not add to plan');
+    }
   }
 
   // ─── Feature 2: Day briefing with live weather ───────────────────────────
@@ -2008,27 +2054,32 @@
     if (item.note) {
       nameWrap.appendChild(el("div", { style: "color: var(--ink-soft); font-size: 13px; margin-top: 2px;", text: item.note }));
     }
-    var btnRow = el("div", { class: "pg-btn-row" });
+    var btnRow = el("div", { style: "margin-top: 8px; display: flex; flex-direction: column; gap: 5px;" });
+    // Row 1: Maps, Tripadvisor, Drive
+    var utilRow = el("div", { class: "pg-btn-row" });
     var mapsBtn = actionButton(itemMapsUrl(item), "Maps", ICON_PIN);
     var tripBtn = actionButton(itemTripadvisorUrl(item), "Tripadvisor", ICON_STAR);
     var driveBtn = actionButton(itemDriveUrl(item), "Drive", ICON_CAR);
-    if (mapsBtn) btnRow.appendChild(mapsBtn);
-    if (tripBtn) btnRow.appendChild(tripBtn);
-    if (driveBtn) btnRow.appendChild(driveBtn);
-    // AI buttons (only for items with a real place name and coords)
+    if (mapsBtn) utilRow.appendChild(mapsBtn);
+    if (tripBtn) utilRow.appendChild(tripBtn);
+    if (driveBtn) utilRow.appendChild(driveBtn);
+    if (utilRow.children.length > 0) btnRow.appendChild(utilRow);
+    // Row 2: AI buttons (only for items with coords)
     if (item.lat != null) {
       var dayNum = parseInt((rowId.match(/^d(\d+)-/) || [])[1], 10);
       var day = dayNum ? pgData.days.filter(function(d) { return d.num === dayNum; })[0] : null;
       var rowObj = day ? day.rows.filter(function(r) { return r.id === rowId; })[0] : null;
       if (day && rowObj) {
+        var aiRow = el("div", { class: "pg-btn-row" });
         var askBtn = el("button", { class: "pg-ai-btn" });
         askBtn.innerHTML = ICON_AI + "&nbsp;Ask AI";
         askBtn.addEventListener("click", function(e) { e.stopPropagation(); askAboutPlace(day, rowObj, item); });
-        btnRow.appendChild(askBtn);
+        aiRow.appendChild(askBtn);
         var altBtn = el("button", { class: "pg-ai-btn", style: "background: var(--surface-sunken); color: var(--ink-soft);" });
         altBtn.innerHTML = ICON_AI + "&nbsp;Alternatives";
         altBtn.addEventListener("click", function(e) { e.stopPropagation(); showAlternatives(day, rowObj, item); });
-        btnRow.appendChild(altBtn);
+        aiRow.appendChild(altBtn);
+        btnRow.appendChild(aiRow);
       }
     }
     if (btnRow.children.length > 0) nameWrap.appendChild(btnRow);
@@ -2328,18 +2379,22 @@
     var wrap = el("div", {});
 
     // Header row: pill + date + subtitle (truncates on desktop, hides on mobile)
-    var header = el("div", { style: "display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: nowrap; min-width: 0;" });
-    header.appendChild(el("span", {
+    var header = el("div", { style: "margin-bottom: 6px;" });
+    var headerRow = el("div", { style: "display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0;" });
+    headerRow.appendChild(el("span", {
       style: "background: var(--ink); color: white; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; padding: 5px 11px; border-radius: 999px; flex-shrink: 0;",
       text: "DAY " + day.num
     }));
-    header.appendChild(el("span", { style: "font-weight: 800; font-size: 20px; flex-shrink: 0; letter-spacing: -0.01em;", text: day.date }));
-    header.appendChild(el("span", { class: "pg-day-subtitle", text: day.title }));
+    headerRow.appendChild(el("span", { style: "font-weight: 800; font-size: 20px; flex-shrink: 0; letter-spacing: -0.01em;", text: day.date }));
+    headerRow.appendChild(el("span", { class: "pg-day-subtitle", text: day.title }));
+    header.appendChild(headerRow);
     if (day.driveTime) {
-      var drivePill = el("div", { class: "pg-drive-pill", style: "flex-shrink: 0; margin-left: auto;" });
+      var driveRow = el("div", { style: "margin-top: 5px;" });
+      var drivePill = el("div", { class: "pg-drive-pill" });
       drivePill.appendChild(el("span", { html: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 13l1.5-4.5A2 2 0 016.4 7h11.2a2 2 0 011.9 1.5L21 13M3 13v5a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-5M3 13h18" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
       drivePill.appendChild(el("span", { text: day.driveTime }));
-      header.appendChild(drivePill);
+      driveRow.appendChild(drivePill);
+      header.appendChild(driveRow);
     }
     wrap.appendChild(header);
 
@@ -2962,65 +3017,64 @@
     header.appendChild(el("div", { style: "font-size: 13px; color: var(--ink-faint); margin-top: 4px;", text: pgData.meta.base }));
     app.appendChild(header);
 
-    var nav = el("div", { style: "display: flex; gap: 6px; overflow-x: auto; justify-content: flex-start; padding: 12px 20px 14px; padding-top: calc(var(--safe-top, 0px) + 12px); position: sticky; top: 0; z-index: 5; background: var(--surface); -webkit-overflow-scrolling: touch; scrollbar-width: none; box-shadow: 0 1px 0 var(--line);" });
-    nav.setAttribute("id", "pg-nav");
-    var navInner = el("div", { style: "display: flex; gap: 6px; margin: 0 auto;" });
+    var nav = el("div", {
+      id: "pg-nav",
+      style: "position: sticky; top: 0; z-index: 5; background: var(--surface); box-shadow: 0 1px 0 var(--line); padding-top: var(--safe-top, 0px);"
+    });
+
+    // Row 1: Day tabs D1–D9 (scrollable)
+    var row1 = el("div", { style: "display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none;" });
+    row1.style.cssText += "; ::-webkit-scrollbar { display: none; }";
     pgData.days.forEach(function(day) {
       var isActive = day.num === activeDay;
       var btn = el("button", {
         class: "pg-tab-btn",
-        style: "font-size: 13px; font-weight: 700; border-radius: 10px; padding: 8px 14px; border: none; flex-shrink: 0; background: " + (isActive ? "var(--ink)" : "var(--surface-sunken)") + "; color: " + (isActive ? "white" : "var(--ink-soft)") + ";",
+        style: "font-size: 13px; font-weight: 700; border-radius: 10px; padding: 7px 14px; border: none; flex-shrink: 0; background: " + (isActive ? "var(--ink)" : "var(--surface-sunken)") + "; color: " + (isActive ? "white" : "var(--ink-soft)") + ";",
         text: "D" + day.num
       });
       btn.addEventListener("click", function() { switchDay(day.num); });
-      navInner.appendChild(btn);
+      row1.appendChild(btn);
     });
-    nav.appendChild(navInner);
+    nav.appendChild(row1);
 
-    // My Picks summary button
+    // Row 2: Action buttons (scrollable)
+    var row2 = el("div", { style: "display: flex; gap: 6px; overflow-x: auto; padding: 4px 16px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; align-items: center;" });
+
     var totalPicks = Object.values(pgSelections).filter(function(v) { return v != null; }).length;
     var picksBtn = el("button", {
       class: "pg-tab-btn",
-      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: " + (totalPicks > 0 ? "var(--accent-tint)" : "var(--surface-sunken)") + "; color: " + (totalPicks > 0 ? "var(--accent-dark)" : "var(--ink-soft)") + "; margin-left: 6px;",
+      style: "font-size: 12px; font-weight: 700; border-radius: 8px; padding: 6px 12px; border: none; flex-shrink: 0; background: " + (totalPicks > 0 ? "var(--accent-tint)" : "var(--surface-sunken)") + "; color: " + (totalPicks > 0 ? "var(--accent-dark)" : "var(--ink-soft)") + ";",
       text: "\u2713 My picks" + (totalPicks > 0 ? " (" + totalPicks + ")" : "")
     });
     picksBtn.addEventListener("click", function() { showPicksSummary(); });
-    navInner.appendChild(picksBtn);
+    row2.appendChild(picksBtn);
 
-    var mapBtn = el("button", {
-      class: "pg-tab-btn",
-      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft); margin-left: 2px;",
-    });
-    mapBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7M9 20l6-3M9 20V7m6 13l4.553 2.276A1 1 0 0021 21.382V10.618a1 1 0 00-.553-.894L15 7m0 13V7M9 7l6-3" stroke-linecap="round" stroke-linejoin="round"/></svg>Trip map';
+    var mapBtn = el("button", { class: "pg-tab-btn", style: "font-size: 12px; font-weight: 700; border-radius: 8px; padding: 6px 12px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft);" });
+    mapBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7M9 20l6-3M9 20V7m6 13l4.553 2.276A1 1 0 0021 21.382V10.618a1 1 0 00-.553-.894L15 7m0 13V7M9 7l6-3" stroke-linecap="round" stroke-linejoin="round"/></svg>Map';
     mapBtn.addEventListener("click", function() { showTripMap(); });
-    navInner.appendChild(mapBtn);
+    row2.appendChild(mapBtn);
 
-    var phraseBtn = el("button", {
-      class: "pg-tab-btn",
-      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft);",
-      text: "\uD83C\uDDEE\uD83C\uDDF9 Phrases"
-    });
+    var phraseBtn = el("button", { class: "pg-tab-btn", style: "font-size: 12px; font-weight: 700; border-radius: 8px; padding: 6px 12px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft);", text: "\uD83C\uDDEE\uD83C\uDDF9 Phrases" });
     phraseBtn.addEventListener("click", function() { showPhrasebook(); });
-    navInner.appendChild(phraseBtn);
+    row2.appendChild(phraseBtn);
 
-    var notifBtn = el("button", {
-      class: "pg-tab-btn",
-      style: "font-size: 12px; font-weight: 700; border-radius: 10px; padding: 8px 13px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft);",
-      html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>Alerts'
-    });
+    var notifBtn = el("button", { class: "pg-tab-btn", style: "font-size: 12px; font-weight: 700; border-radius: 8px; padding: 6px 12px; border: none; flex-shrink: 0; background: var(--surface-sunken); color: var(--ink-soft);" });
+    notifBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round" stroke-linejoin="round"/></svg>Alerts';
     notifBtn.addEventListener("click", function() { showNotificationsPanel(); });
-    navInner.appendChild(notifBtn);
+    row2.appendChild(notifBtn);
 
-    // Sync status pill
     var syncPill = el("div", {
       id: "pg-sync-status",
-      style: "display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: #9CA0AA; padding: 6px 10px; flex-shrink: 0; white-space: nowrap;"
+      style: "display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #9CA0AA; padding: 4px 8px; flex-shrink: 0; white-space: nowrap; margin-left: 2px;"
     });
-    syncPill.innerHTML = '<span style="font-size:12px;">\uD83D\uDCBE</span><span>Local only</span>';
-    navInner.appendChild(syncPill);
+    syncPill.innerHTML = '<span>\uD83D\uDCBE</span><span>Local</span>';
+    row2.appendChild(syncPill);
 
+    nav.appendChild(row2);
     app.appendChild(nav);
-    var activeBtn = navInner.children[activeDay - 1];
+
+    // Scroll active day tab into view
+    var activeBtn = row1.children[activeDay - 1];
     if (activeBtn && activeBtn.scrollIntoView) {
       activeBtn.scrollIntoView({ block: "nearest", inline: "center" });
     }
