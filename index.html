@@ -1110,28 +1110,26 @@
   }
 
   // Call the Anthropic API with optional web search
+  var WORKER_URL = "https://misty-star-076e.matchpredictor.workers.dev";
+
   async function callAI(systemPrompt, userPrompt, useWebSearch) {
     if (!_anthropicKey) {
       showKeySetup();
       throw new Error('API key not configured');
     }
     var tools = useWebSearch ? [{ type: 'web_search_20250305', name: 'web_search' }] : undefined;
-    var body = {
+    var payload = {
       model: 'claude-sonnet-4-6',
       max_tokens: 1000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]
     };
-    if (tools) body.tools = tools;
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    if (tools) payload.tools = tools;
+
+    var resp = await fetch(WORKER_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': _anthropicKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true'
-      },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: _anthropicKey, payload: payload })
     });
     if (!resp.ok) throw new Error('API error ' + resp.status);
     var data = await resp.json();
