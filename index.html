@@ -1580,14 +1580,22 @@
     if (!AVIATIONSTACK_KEY) return null;
     if (_flightCache[flightNum]) return _flightCache[flightNum];
     try {
-      var url = 'https://api.aviationstack.com/v1/flights?access_key=' + AVIATIONSTACK_KEY +
-                '&flight_iata=' + encodeURIComponent(flightNum) + '&limit=1';
-      var resp = await fetch(url);
+      // Route through Cloudflare Worker — AviationStack free plan needs HTTP
+      // which browsers block on HTTPS pages. Worker handles it server-side.
+      var resp = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'flight',
+          apiKey: AVIATIONSTACK_KEY,
+          flightNum: flightNum
+        })
+      });
       var data = await resp.json();
       var flight = data.data && data.data[0] ? data.data[0] : null;
       if (flight) {
         _flightCache[flightNum] = flight;
-        setTimeout(function() { delete _flightCache[flightNum]; }, 60000); // refresh every min
+        setTimeout(function() { delete _flightCache[flightNum]; }, 60000);
       }
       return flight;
     } catch(e) { return null; }
