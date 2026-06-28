@@ -151,7 +151,7 @@
   }
   .pg-ai-panel {
     background: var(--surface); border-radius: 20px 20px 0 0;
-    width: 100%; max-height: 80vh; overflow-y: auto;
+    width: 100%; max-height: 92vh; overflow-y: auto;
     padding: 0 0 calc(20px + var(--safe-bottom, 0px));
     animation: pgSlideUp 0.25s ease;
     scrollbar-width: thin;
@@ -338,7 +338,7 @@
 
     // Default assignment of activities to swappable slots (D3-D7)
     // Keys reference ACTIVITY_TEMPLATES below
-    dayAssignments: ["valle-ditria", "beach", "zoosafari", "beach", "beach"],
+    dayAssignments: ["zoosafari", "beach", "matera", "valle-ditria", "beach"],
 
     // Activity templates — content that can be assigned to any swappable day
     activities: {
@@ -2348,9 +2348,10 @@
   }
 
   function resolveRoute(day) {
+    day = resolveDay(day); // resolve slot days to activity content first
     if (!day.route) return null;
     var rowsById = {};
-    day.rows.forEach(function(row) {
+    (day.rows || []).forEach(function(row) {
       if (row.id) rowsById[row.id] = row;
     });
     var resolved = [];
@@ -2449,7 +2450,7 @@
     // For slot days (D3-D7), merge activity template content into the day object
     if (!day.slot) return day;
     var slotIndex = day.num - 3; // D3=0, D4=1, D5=2, D6=3, D7=4
-    var assignments = pgData.dayAssignments || ["valle-ditria","beach","zoosafari","beach","beach"];
+    var assignments = pgData.dayAssignments || ["zoosafari","beach","matera","valle-ditria","beach"];
     var actKey = assignments[slotIndex] || "beach";
     var act = pgData.activities && pgData.activities[actKey];
     if (!act) return day;
@@ -3016,7 +3017,7 @@
 
     var body = el('div', { class: 'pg-ai-panel-body' });
 
-    var assignments = pgData.dayAssignments ? pgData.dayAssignments.slice() : ["valle-ditria","beach","zoosafari","beach","beach"];
+    var assignments = pgData.dayAssignments ? pgData.dayAssignments.slice() : ["zoosafari","beach","matera","valle-ditria","beach"];
     var acts = pgData.activities;
 
     // Fixed days info
