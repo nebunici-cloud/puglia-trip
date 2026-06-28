@@ -2136,18 +2136,28 @@
     if (utilRow.children.length > 0) btnRow.appendChild(utilRow);
     // Row 2: AI buttons (only for items with coords)
     if (item.lat != null) {
-      var dayNum = parseInt((rowId.match(/^d(\d+)-/) || [])[1], 10);
+      var dayNum = parseInt((rowId.match(/^d(\d+)-/) || (rowId.match(/^act-/) ? ['','slot'] : []))[1], 10);
+      // Try direct day lookup first, then resolve slot days
       var day = dayNum ? pgData.days.filter(function(d) { return d.num === dayNum; })[0] : null;
-      var rowObj = day ? day.rows.filter(function(r) { return r.id === rowId; })[0] : null;
-      if (day && rowObj) {
+      var resolvedDay = day ? resolveDay(day) : null;
+      // Also handle activity-prefixed row IDs (act-zoo-lunch etc) by finding which day is active
+      if (!resolvedDay && rowId.startsWith('act-')) {
+        resolvedDay = resolveDay(pgData.days[activeDay - 1]);
+      }
+      var rowObj = resolvedDay && resolvedDay.rows ? resolvedDay.rows.filter(function(r) { return r.id === rowId; })[0] : null;
+      // Fallback: if rowObj not found by id, create a minimal context from the item itself
+      if (!rowObj && resolvedDay) {
+        rowObj = { id: rowId, label: rowId, items: [item] };
+      }
+      if (resolvedDay) {
         var aiRow = el("div", { class: "pg-btn-row" });
         var askBtn = el("button", { class: "pg-ai-btn" });
         askBtn.innerHTML = ICON_AI + "&nbsp;Ask AI";
-        askBtn.addEventListener("click", function(e) { e.stopPropagation(); askAboutPlace(day, rowObj, item); });
+        askBtn.addEventListener("click", (function(d, r, it) { return function(e) { e.stopPropagation(); askAboutPlace(d, r, it); }; })(resolvedDay, rowObj, item));
         aiRow.appendChild(askBtn);
         var altBtn = el("button", { class: "pg-ai-btn", style: "background: var(--surface-sunken); color: var(--ink-soft);" });
         altBtn.innerHTML = ICON_AI + "&nbsp;Alternatives";
-        altBtn.addEventListener("click", function(e) { e.stopPropagation(); showAlternatives(day, rowObj, item); });
+        altBtn.addEventListener("click", (function(d, r, it) { return function(e) { e.stopPropagation(); showAlternatives(d, r, it); }; })(resolvedDay, rowObj, item));
         aiRow.appendChild(altBtn);
         btnRow.appendChild(aiRow);
       }
