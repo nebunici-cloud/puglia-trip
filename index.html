@@ -1365,7 +1365,7 @@
           ctx + '\n\n' +
           (allPicks.length ? 'Confirmed picks today: ' + allPicks.join('; ') + '.\n\n' : '') +
           'Give a day briefing covering:\n' +
-          '1. **Weather** \u2014 search for the forecast for ' + day.title.split('\u2014')[0].trim() + ', Puglia around ' + day.date + '. Temperature, UV index, any risk of afternoon storms.\n' +
+          '1. **Weather** \u2014 search for the forecast for ' + (resolveDay(day).title || day.date).split('\u2014')[0].trim() + ', Puglia around ' + day.date + '. Temperature, UV index, any risk of afternoon storms.\n' +
           '2. **Crowd & timing tips** \u2014 is this a weekend? peak tourist period considerations for the specific places they\'re visiting.\n' +
           '3. **Top 3 priorities for today** \u2014 given their picks and the day\'s shape, what absolutely cannot be missed or rushed.\n' +
           '4. **One thing most tourists miss** at one of today\'s destinations.\n' +
@@ -2894,6 +2894,7 @@
 
       // Render each day
       pgData.days.forEach(function(day, di) {
+        day = resolveDay(day); // resolve slot days to activity content
         var dayStops = byDay[day.num] || [];
         if (!dayStops.length) return;
         var color = DAY_COLORS[di];
@@ -2971,6 +2972,7 @@
       legend.appendChild(legendTitle);
 
       pgData.days.forEach(function(day, di) {
+        var rday = resolveDay(day);
         var color = DAY_COLORS[di];
         var lbl = document.createElement('label');
         var cb = document.createElement('input');
@@ -2992,7 +2994,7 @@
         dot.style.background = color;
         var txt = document.createElement('span');
         txt.style.color = '#15161A';
-        txt.textContent = 'D' + day.num + ' \u00B7 ' + day.title.split('\u2014')[0].trim().split('+')[0].trim();
+        var rday2 = resolveDay(day); txt.textContent = 'D' + day.num + ' \u00B7 ' + (rday2.title || '').split('\u2014')[0].trim().split('+')[0].trim();
         lbl.appendChild(cb); lbl.appendChild(dot); lbl.appendChild(txt);
         legend.appendChild(lbl);
       });
